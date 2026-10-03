@@ -1,30 +1,19 @@
 {
-	"FileVersion": 3,
-	"EngineAssociation": "5.8",
-	"Modules": [
-		{
-			"Name": "UBF",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
-		}
-	],
-	"Category": "",
-	"Description": "",
-	"Plugins": [
-		{
-			"Name": "WmfMedia",
-			"Enabled": true
-		},
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "GameplayStateTree",
-			"Enabled": true
-		}
-	]
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Modules": [
+    {
+      "Name": "UBF",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Category": "",
+  "Description": "",
+  "Plugins": [
+    {
+      "Name": "WmfMedia",
+      "Enabled": true
+    }
+  ]
 }

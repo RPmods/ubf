@@ -83,7 +83,7 @@ void UUBFPresentationWidget::NativeConstruct()
 
 void UUBFPresentationWidget::NativeDestruct()
 {
-	for (UMediaPlayer* Player : { IntroVideoPlayer.Get(), IntroAudioPlayer.Get(), ShoutPlayer.Get(), BackgroundPlayer.Get() })
+	for (UMediaPlayer* Player : { IntroVideoPlayer.Get(), IntroAudioPlayer.Get(), LoopAudioPlayer.Get(), BackgroundPlayer.Get() })
 	{
 		if (Player)
 		{
@@ -202,14 +202,14 @@ void UUBFPresentationWidget::PrepareResources()
 	const FString IntroVideoPath = ContentDirectory / TEXT("Presentation/Videos/intro.mp4");
 	const FString BackgroundPath = ContentDirectory / TEXT("Presentation/Videos/videobackground.mp4");
 	const FString IntroAudioPath = ContentDirectory / TEXT("Presentation/Audio/musicintro.mp3");
-	const FString ShoutPath = ContentDirectory / TEXT("Presentation/Audio/introdution_ubf.mp3");
+	const FString LoopAudioPath = ContentDirectory / TEXT("Presentation/Audio/musicintrobucle.mp3");
 	const FString LogoPath = ContentDirectory / TEXT("Presentation/Images/logo.png");
 
 	const TArray<TPair<FString, FString>> RequiredFiles = {
 		{ TEXT("intro.mp4"), IntroVideoPath },
 		{ TEXT("videobackground.mp4"), BackgroundPath },
 		{ TEXT("musicintro.mp3"), IntroAudioPath },
-		{ TEXT("introdution_ubf.mp3"), ShoutPath },
+		{ TEXT("musicintrobucle.mp3"), LoopAudioPath },
 		{ TEXT("logo.png"), LogoPath }
 	};
 	for (const TPair<FString, FString>& File : RequiredFiles)
@@ -229,27 +229,28 @@ void UUBFPresentationWidget::PrepareResources()
 	IntroVideoSource = UBFPresentation::MakeFileSource(this, IntroVideoPath);
 	BackgroundSource = UBFPresentation::MakeFileSource(this, BackgroundPath);
 	IntroAudioSource = UBFPresentation::MakeFileSource(this, IntroAudioPath);
-	ShoutSource = UBFPresentation::MakeFileSource(this, ShoutPath);
+	LoopAudioSource = UBFPresentation::MakeFileSource(this, LoopAudioPath);
 	IntroVideoPlayer = UBFPresentation::MakePlayer(this, false);
 	BackgroundPlayer = UBFPresentation::MakePlayer(this, false);
 	IntroAudioPlayer = UBFPresentation::MakePlayer(this, true);
-	ShoutPlayer = UBFPresentation::MakePlayer(this, true);
+	LoopAudioPlayer = UBFPresentation::MakePlayer(this, true);
 	IntroTexture = UBFPresentation::MakeTexture(this, IntroVideoPlayer);
 	BackgroundTexture = UBFPresentation::MakeTexture(this, BackgroundPlayer);
 
 	IntroVideoPlayer->OnMediaOpened.AddDynamic(this, &UUBFPresentationWidget::OnIntroVideoOpened);
 	IntroAudioPlayer->OnMediaOpened.AddDynamic(this, &UUBFPresentationWidget::OnIntroAudioOpened);
-	ShoutPlayer->OnMediaOpened.AddDynamic(this, &UUBFPresentationWidget::OnShoutOpened);
+	LoopAudioPlayer->OnMediaOpened.AddDynamic(this, &UUBFPresentationWidget::OnLoopAudioOpened);
+	IntroAudioPlayer->OnEndReached.AddDynamic(this, &UUBFPresentationWidget::OnIntroAudioEnded);
 	BackgroundPlayer->OnMediaOpened.AddDynamic(this, &UUBFPresentationWidget::OnBackgroundOpened);
 	IntroVideoPlayer->OnMediaOpenFailed.AddDynamic(this, &UUBFPresentationWidget::OnMediaOpenFailed);
 	IntroAudioPlayer->OnMediaOpenFailed.AddDynamic(this, &UUBFPresentationWidget::OnMediaOpenFailed);
-	ShoutPlayer->OnMediaOpenFailed.AddDynamic(this, &UUBFPresentationWidget::OnMediaOpenFailed);
+	LoopAudioPlayer->OnMediaOpenFailed.AddDynamic(this, &UUBFPresentationWidget::OnMediaOpenFailed);
 	BackgroundPlayer->OnMediaOpenFailed.AddDynamic(this, &UUBFPresentationWidget::OnMediaOpenFailed);
 
 	UpdateStatus(FText::FromString(TEXT("CARGANDO Y PREPARANDO MEDIOS...")));
 	if (!IntroVideoPlayer->OpenSource(IntroVideoSource) ||
 		!IntroAudioPlayer->OpenSource(IntroAudioSource) ||
-		!ShoutPlayer->OpenSource(ShoutSource) ||
+		!LoopAudioPlayer->OpenSource(LoopAudioSource) ||
 		!BackgroundPlayer->OpenSource(BackgroundSource))
 	{
 		ShowDevelopmentError(FText::FromString(TEXT("Un MediaPlayer rechazó un recurso al abrirlo.")));
@@ -268,9 +269,9 @@ void UUBFPresentationWidget::OnIntroAudioOpened(FString OpenedUrl)
 	TryStartIntro();
 }
 
-void UUBFPresentationWidget::OnShoutOpened(FString OpenedUrl)
+void UUBFPresentationWidget::OnLoopAudioOpened(FString OpenedUrl)
 {
-	bShoutReady = true;
+	bLoopAudioReady = true;
 	TryStartIntro();
 }
 
@@ -287,15 +288,15 @@ void UUBFPresentationWidget::OnMediaOpenFailed(FString FailedUrl)
 
 void UUBFPresentationWidget::TryStartIntro()
 {
-	if (State != EPresentationState::Preparing || !bIntroVideoReady || !bIntroAudioReady || !bShoutReady || !bBackgroundReady)
+	if (State != EPresentationState::Preparing || !bIntroVideoReady || !bIntroAudioReady || !bLoopAudioReady || !bBackgroundReady)
 	{
 		return;
 	}
-	if (!IntroVideoPlayer->IsReady() || !IntroAudioPlayer->IsReady() || !ShoutPlayer->IsReady() || !BackgroundPlayer->IsReady() ||
+	if (!IntroVideoPlayer->IsReady() || !IntroAudioPlayer->IsReady() || !LoopAudioPlayer->IsReady() || !BackgroundPlayer->IsReady() ||
 		IntroVideoPlayer->GetNumTracks(EMediaPlayerTrack::Video) < 1 ||
 		BackgroundPlayer->GetNumTracks(EMediaPlayerTrack::Video) < 1 ||
 		IntroAudioPlayer->GetNumTracks(EMediaPlayerTrack::Audio) < 1 ||
-		ShoutPlayer->GetNumTracks(EMediaPlayerTrack::Audio) < 1)
+		LoopAudioPlayer->GetNumTracks(EMediaPlayerTrack::Audio) < 1)
 	{
 		ShowDevelopmentError(FText::FromString(TEXT("Los recursos se abrieron, pero falta una pista de vídeo o audio requerida.")));
 		return;
@@ -359,6 +360,33 @@ void UUBFPresentationWidget::StartIntroPlayback()
 	}
 }
 
+void UUBFPresentationWidget::OnIntroAudioEnded()
+{
+	if (State != EPresentationState::DevelopmentError)
+	{
+		StartLoopMusic();
+	}
+}
+
+void UUBFPresentationWidget::StartLoopMusic()
+{
+	if (bLoopAudioStarted || !bLoopAudioReady || State == EPresentationState::DevelopmentError)
+	{
+		return;
+	}
+
+	bLoopAudioStarted = true;
+	if (IntroAudioPlayer)
+	{
+		IntroAudioPlayer->Close();
+	}
+	LoopAudioPlayer->SetLooping(true);
+	if (!LoopAudioPlayer->Play())
+	{
+		bLoopAudioStarted = false;
+		ShowDevelopmentError(FText::FromString(TEXT("No se pudo iniciar musicintrobucle.mp3.")));
+	}
+}
 void UUBFPresentationWidget::BeginMenu()
 {
 	if (State != EPresentationState::Intro)
@@ -367,7 +395,6 @@ void UUBFPresentationWidget::BeginMenu()
 	}
 	State = EPresentationState::Menu;
 	IntroVideoPlayer->Pause();
-	IntroAudioPlayer->Close();
 	BackgroundPlayer->SetLooping(true);
 	VideoImage->SetBrushResourceObject(BackgroundTexture);
 	LogoImage->SetVisibility(ESlateVisibility::Visible);
@@ -376,9 +403,9 @@ void UUBFPresentationWidget::BeginMenu()
 	const UUBFGameInstance* UBFInstance = GetGameInstance<UUBFGameInstance>();
 	const FString UserName = UBFInstance ? UBFInstance->GetSessionUserName() : TEXT("Usuario de desarrollo");
 	SessionText->SetText(FText::FromString(FString::Printf(TEXT("Sesión iniciada: %s"), *UserName)));
-	if (!BackgroundPlayer->Play() || !ShoutPlayer->Play())
+	if (!BackgroundPlayer->Play())
 	{
-		ShowDevelopmentError(FText::FromString(TEXT("No se pudo iniciar el vídeo de menú o el audio de presentación.")));
+		ShowDevelopmentError(FText::FromString(TEXT("No se pudo iniciar el vídeo de menú.")));
 	}
 }
 
@@ -389,7 +416,7 @@ void UUBFPresentationWidget::ShowDevelopmentError(const FText& Reason)
 		return;
 	}
 	State = EPresentationState::DevelopmentError;
-	for (UMediaPlayer* Player : { IntroVideoPlayer.Get(), IntroAudioPlayer.Get(), ShoutPlayer.Get(), BackgroundPlayer.Get() })
+	for (UMediaPlayer* Player : { IntroVideoPlayer.Get(), IntroAudioPlayer.Get(), LoopAudioPlayer.Get(), BackgroundPlayer.Get() })
 	{
 		if (Player)
 		{

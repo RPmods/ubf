@@ -3,6 +3,7 @@ Binaries/
 Intermediate/
 DerivedDataCache/
 Saved/
+Build/Windows/FileOpenOrder/
 
 # Visual Studio / IDE output
 .vs/

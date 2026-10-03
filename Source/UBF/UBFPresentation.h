@@ -66,6 +66,7 @@ private:
 	void OnIntroVideoSeekCompleted();
 	void OnBackgroundSeekCompleted();
 	void BeginMenu();
+	void StartLoopMusic();
 	void ShowDevelopmentError(const FText& Reason);
 	void UpdateStatus(const FText& Message);
 	void PositionWidget(UWidget* Widget, const FAnchors& Anchors, const FVector2D& Alignment,
@@ -76,7 +77,9 @@ private:
 	UFUNCTION()
 	void OnIntroAudioOpened(FString OpenedUrl);
 	UFUNCTION()
-	void OnShoutOpened(FString OpenedUrl);
+	void OnIntroAudioEnded();
+	UFUNCTION()
+	void OnLoopAudioOpened(FString OpenedUrl);
 	UFUNCTION()
 	void OnBackgroundOpened(FString OpenedUrl);
 	UFUNCTION()
@@ -106,7 +109,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UFileMediaSource> IntroAudioSource;
 	UPROPERTY()
-	TObjectPtr<UFileMediaSource> ShoutSource;
+	TObjectPtr<UFileMediaSource> LoopAudioSource;
 	UPROPERTY()
 	TObjectPtr<UFileMediaSource> BackgroundSource;
 	UPROPERTY()
@@ -114,7 +117,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UMediaPlayer> IntroAudioPlayer;
 	UPROPERTY()
-	TObjectPtr<UMediaPlayer> ShoutPlayer;
+	TObjectPtr<UMediaPlayer> LoopAudioPlayer;
 	UPROPERTY()
 	TObjectPtr<UMediaPlayer> BackgroundPlayer;
 	UPROPERTY()
@@ -133,7 +136,8 @@ private:
 	float GlitchRemaining = 0.0f;
 	bool bIntroVideoReady = false;
 	bool bIntroAudioReady = false;
-	bool bShoutReady = false;
+	bool bLoopAudioReady = false;
+	bool bLoopAudioStarted = false;
 	bool bBackgroundReady = false;
 	bool bResourcesValidated = false;
 	bool bIntroSeekReady = false;
