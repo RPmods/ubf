@@ -1,26 +1,26 @@
 {
-  "version": "1.0.1-beta",
+  "version": "1.0.2-beta",
   "package": {
-    "fileName": "UBF-v1.0.1-beta.zip",
-    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.1-beta/UBF-v1.0.1-beta.zip",
-    "size": 662748493,
-    "sha256": "0eec83c888b05d405414e5fdefff204c96e76d8228bc3fcee88c4e7a57cbdae9"
+    "fileName": "UBF-v1.0.2-beta.zip",
+    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.2-beta/UBF-v1.0.2-beta.zip",
+    "size": 465028352,
+    "sha256": "253b5eb3a78a2d3042e0b5136e3801c1109b261ca9e06419e11ec1915f56fb85"
   },
   "files": [
     {
       "path": "Manifest_DebugFiles_Win64.txt",
       "size": 214,
-      "sha256": "8c3b7fdc21451f3fefdd0af6b76847e79dcb2885d161c185695a2ba548d6c6eb"
+      "sha256": "f9e59207e6de8e7e63a757e2ea556eaa5fea833e684db399614d64d157a2f2ac"
     },
     {
       "path": "Manifest_NonUFSFiles_Win64.txt",
       "size": 1906,
-      "sha256": "26e37c307d5ff82aa19fa857cd876d32581a8374f819da8634273159397e6784"
+      "sha256": "cf9e2a9dafc9ff99dc016dfca8555fdb16c3626997e0eaf8168fd47efa9d64fa"
     },
     {
       "path": "Manifest_UFSFiles_Win64.txt",
-      "size": 217271,
-      "sha256": "41c90b43f427e7d1354ad909de3ff5caef61723a68940a4b997f8f143414fa16"
+      "size": 197794,
+      "sha256": "704df59bba5799a67d571014b5ffaf92b2c2f3b4de26bc83fd043abb22c03baa"
     },
     {
       "path": "NOTICES.txt",
@@ -119,13 +119,8 @@
     },
     {
       "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
-      "size": 165974528,
-      "sha256": "7597cf9f0b5f3c868b43ad517f270b7cd12e268204b79565f883511e355ed066"
-    },
-    {
-      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.pdb",
-      "size": 221540352,
-      "sha256": "b6efd165768045a4eecd43117f1fb41684c1bd91d39caa64fe4a7c5cad2a50e4"
+      "size": 165917184,
+      "sha256": "6662be53060ba08b5fc6e0d679087eea68e90ca3333d43c23db763790f7affb1"
     },
     {
       "path": "UBF/Binaries/Win64/D3D12/x64/D3D12Core.dll",
@@ -144,38 +139,38 @@
     },
     {
       "path": "UBF/Content/Paks/global.ucas",
-      "size": 3210960,
-      "sha256": "4a31ab2f98786723142d5f9f0115e0f796ea012ee018d2e2fa08c95f41545e2c"
+      "size": 3208576,
+      "sha256": "55615db3cf2bc00577997467b0d6c37145aa801886e9251ea6d0dec662ed90b3"
     },
     {
       "path": "UBF/Content/Paks/global.utoc",
       "size": 782,
-      "sha256": "65ea3feb94143a771f54110fbb0130f3b6daf7cb5fd8b5e0a21217e2b054e9a0"
+      "sha256": "054e95c4728e0f87ecafe204b6e616be372acff0fc753909c5cc9640a9672483"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.pak",
-      "size": 11445730,
-      "sha256": "fd043add8e5f5bfa165d8d8853b54b78ce0adeb15282459178b0f79ddd5c7206"
+      "size": 10643807,
+      "sha256": "8112770766e731846df47b2d24d59f7028b5abc088ad5700817ab277c006b905"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.ucas",
-      "size": 263689088,
-      "sha256": "60b71121416bdcb4ad02a529ade157319e41517cfa887d9ebfede2d953bde0df"
+      "size": 123021584,
+      "sha256": "9efd04336df6a2ef1d116277acc7fabf1fd92b479955f2c01afb46da92ffc4b2"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.utoc",
-      "size": 225416,
-      "sha256": "76db12cec4efbdfffd10f2afeecc9268f9910b126dd5ab2add4a7cbfe42cccd5"
-    },
-    {
-      "path": "UBF/Content/Presentation/Audio/introdution_ubf.mp3",
-      "size": 147607,
-      "sha256": "fd1e745076bc02cec12c4d4896d5e828006f15db7f6f58f978f60d0eb3d791a9"
+      "size": 121138,
+      "sha256": "ac7c818adb6b4391a0c078875d0d79c88c88f7c3739a22bf69b0a2cb982b50c4"
     },
     {
       "path": "UBF/Content/Presentation/Audio/musicintro.mp3",
       "size": 2199972,
       "sha256": "fba24a716108bb22f3f324f758b3996ab0e0c6989d232962acc120b404598aae"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/musicintrobucle.mp3",
+      "size": 938386,
+      "sha256": "12afc5668e4a34fec3f790afbdd3e534324d2a9704f44ebc4fdcef6a5a571ecf"
     },
     {
       "path": "UBF/Content/Presentation/Images/logo.png",
