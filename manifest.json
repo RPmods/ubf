@@ -1,0 +1,196 @@
+{
+  "version": "1.0.1-beta",
+  "package": {
+    "fileName": "UBF-v1.0.1-beta.zip",
+    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.1-beta/UBF-v1.0.1-beta.zip",
+    "size": 662748493,
+    "sha256": "0eec83c888b05d405414e5fdefff204c96e76d8228bc3fcee88c4e7a57cbdae9"
+  },
+  "files": [
+    {
+      "path": "Manifest_DebugFiles_Win64.txt",
+      "size": 214,
+      "sha256": "8c3b7fdc21451f3fefdd0af6b76847e79dcb2885d161c185695a2ba548d6c6eb"
+    },
+    {
+      "path": "Manifest_NonUFSFiles_Win64.txt",
+      "size": 1906,
+      "sha256": "26e37c307d5ff82aa19fa857cd876d32581a8374f819da8634273159397e6784"
+    },
+    {
+      "path": "Manifest_UFSFiles_Win64.txt",
+      "size": 217271,
+      "sha256": "41c90b43f427e7d1354ad909de3ff5caef61723a68940a4b997f8f143414fa16"
+    },
+    {
+      "path": "NOTICES.txt",
+      "size": 111,
+      "sha256": "ba49ae5586f817b36a2772269f71f899cb1f54b5f2720fad951319edd5e140b8"
+    },
+    {
+      "path": "UBF.exe",
+      "size": 231936,
+      "sha256": "ff0b206e281ba8ccdf0767e26ec718e148f1ef5c1797ebd69796d804e3364685"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/DbgHelp/dbghelp.dll",
+      "size": 2232688,
+      "sha256": "36795e47d9724ee68349efbbe64aba94db108b9cad1e3dfe8bc510f359136f53"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/MsQuic/v220/win64/msquic.dll",
+      "size": 2547080,
+      "sha256": "5c6b07bf263dd8b85cb146b59468a22eb1fbd8635d4a6c56a8e41b67ce5eca2b"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/GFSDK_Aftermath_Lib.x64.dll",
+      "size": 5799016,
+      "sha256": "82d7a3e50710d660927db2f318cbed471049c962b7c05de12c2b2b3e40a35af9"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/Ogg/Win64/VS2015/libogg_64.dll",
+      "size": 59832,
+      "sha256": "f23df1213c4bf23b5c666bafa7ec18743847a2e18192ae8e0d096a2fb7c28bf9"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/Vorbis/Win64/VS2015/libvorbis_64.dll",
+      "size": 1724856,
+      "sha256": "a56d43a98e197f5e73a1dadf5c1dc7a07ad40327b199faa4ff1247abd6eccd5b"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/Vorbis/Win64/VS2015/libvorbisfile_64.dll",
+      "size": 48568,
+      "sha256": "d64e67ca918716be8b6056a6f7a1f6256e910754425db8369d952943264b40eb"
+    },
+    {
+      "path": "Engine/Binaries/ThirdParty/Windows/XAudio2_9/x64/xaudio2_9redist.dll",
+      "size": 858152,
+      "sha256": "0ca010abcabe52493fdb744d79c4c8132ae6756046b68aa7c88bdc03ec1effcd"
+    },
+    {
+      "path": "Engine/Config/StagedBuild_UBF.ini",
+      "size": 3,
+      "sha256": "f1945cd6c19e56b3c1c78943ef5ec18116907a4ca1efc40a57d48ab1db7adfc5"
+    },
+    {
+      "path": "Engine/Content/Renderer/TessellationTable.bin",
+      "size": 259568,
+      "sha256": "edc4f3b628a139c5e185bbaeca661c95c1f427368d3b92892c5cff36c56dd941"
+    },
+    {
+      "path": "Engine/Content/Slate/Cursor/invisible.cur",
+      "size": 326,
+      "sha256": "fef3980fa567e9c45d5d8dcaa432a2c1a3f3bb17fe67d7ab198164f56c142aa1"
+    },
+    {
+      "path": "Engine/Content/SlateDebug/Fonts/LastResort.tps",
+      "size": 930,
+      "sha256": "0f775fa99d05e21d43d2d06d55982b23dcdccdb512a9a5a07aff674f212c41b8"
+    },
+    {
+      "path": "Engine/Content/SlateDebug/Fonts/LastResort.ttf",
+      "size": 5395052,
+      "sha256": "fff0f8de0b868b964950fe97c9b60f893e9bc85a4f90b3629c5693db058b97b9"
+    },
+    {
+      "path": "Engine/Extras/Redist/en-us/vc_redist.arm64.exe",
+      "size": 11751688,
+      "sha256": "9a4540c1ed0ac2a0755c0093a9c01e4b3dbe21b25805318ba495648fc890e14f"
+    },
+    {
+      "path": "Engine/Extras/Redist/en-us/vc_redist.x64.exe",
+      "size": 18569648,
+      "sha256": "c458c6841310561ef6fadef893092ed02d840da205ad0ae9843fb0d2579b3378"
+    },
+    {
+      "path": "Engine/Plugins/NNE/NNERuntimeORT/Binaries/ThirdParty/Onnxruntime/Win64/onnxruntime.dll",
+      "size": 17339384,
+      "sha256": "5df3d744b5cc4421181e9e2c97cadff4e9b1b2b25e80202160e80fc94ff948f2"
+    },
+    {
+      "path": "UBF/Binaries/Win64/tbb12.dll",
+      "size": 342456,
+      "sha256": "de15a5f93bfd334d4fe32343a81d76f9de0824af8e31b2189637d12545af2673"
+    },
+    {
+      "path": "UBF/Binaries/Win64/tbbmalloc.dll",
+      "size": 117176,
+      "sha256": "74edc04a8f5bc2593a5a555b675c1251d6d90e693ee6a67cfa11dd3b2d17a856"
+    },
+    {
+      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
+      "size": 165974528,
+      "sha256": "7597cf9f0b5f3c868b43ad517f270b7cd12e268204b79565f883511e355ed066"
+    },
+    {
+      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.pdb",
+      "size": 221540352,
+      "sha256": "b6efd165768045a4eecd43117f1fb41684c1bd91d39caa64fe4a7c5cad2a50e4"
+    },
+    {
+      "path": "UBF/Binaries/Win64/D3D12/x64/D3D12Core.dll",
+      "size": 4831768,
+      "sha256": "c41711499e13244fd07ca28a9b32ece29e4454ecc38fb50681f74254b333a9b3"
+    },
+    {
+      "path": "UBF/Binaries/Win64/D3D12/x64/d3d12SDKLayers.dll",
+      "size": 4943344,
+      "sha256": "e36f1ee4371798892529762368907d19b997493ad6f30aa8acbfd0132881804f"
+    },
+    {
+      "path": "UBF/Binaries/Win64/DML/x64/DirectML.dll",
+      "size": 18538488,
+      "sha256": "f97b69379ecbdbab7e1dcd2b6170e7f285d367c86ee6718bc401c4d7cef1275c"
+    },
+    {
+      "path": "UBF/Content/Paks/global.ucas",
+      "size": 3210960,
+      "sha256": "4a31ab2f98786723142d5f9f0115e0f796ea012ee018d2e2fa08c95f41545e2c"
+    },
+    {
+      "path": "UBF/Content/Paks/global.utoc",
+      "size": 782,
+      "sha256": "65ea3feb94143a771f54110fbb0130f3b6daf7cb5fd8b5e0a21217e2b054e9a0"
+    },
+    {
+      "path": "UBF/Content/Paks/UBF-Windows.pak",
+      "size": 11445730,
+      "sha256": "fd043add8e5f5bfa165d8d8853b54b78ce0adeb15282459178b0f79ddd5c7206"
+    },
+    {
+      "path": "UBF/Content/Paks/UBF-Windows.ucas",
+      "size": 263689088,
+      "sha256": "60b71121416bdcb4ad02a529ade157319e41517cfa887d9ebfede2d953bde0df"
+    },
+    {
+      "path": "UBF/Content/Paks/UBF-Windows.utoc",
+      "size": 225416,
+      "sha256": "76db12cec4efbdfffd10f2afeecc9268f9910b126dd5ab2add4a7cbfe42cccd5"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/introdution_ubf.mp3",
+      "size": 147607,
+      "sha256": "fd1e745076bc02cec12c4d4896d5e828006f15db7f6f58f978f60d0eb3d791a9"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/musicintro.mp3",
+      "size": 2199972,
+      "sha256": "fba24a716108bb22f3f324f758b3996ab0e0c6989d232962acc120b404598aae"
+    },
+    {
+      "path": "UBF/Content/Presentation/Images/logo.png",
+      "size": 1692362,
+      "sha256": "c3f35ddc6f3acdd2b9dc83763da7e3df3c4efc5c85d6d6d853ef8b06a5da6a1b"
+    },
+    {
+      "path": "UBF/Content/Presentation/Videos/intro.mp4",
+      "size": 12745472,
+      "sha256": "418e2e43d1859ee598c44e06f2bbbd49811385a8d5e689f255c7a69011a4edc5"
+    },
+    {
+      "path": "UBF/Content/Presentation/Videos/videobackground.mp4",
+      "size": 190602925,
+      "sha256": "40d17e5c6333b91f6884d8c1537af8df6115231b99c9dca958504f4005d90487"
+    }
+  ]
+}
