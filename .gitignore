@@ -1,0 +1,33 @@
+# Unreal-generated build and editor output
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+
+# Visual Studio / IDE output
+.vs/
+.idea/
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+ipch/
+
+# Compiled files
+*.pdb
+*.ilk
+*.idb
+*.obj
+*.lib
+*.exp
+*.pch
+*.target
+*.tmp
+
+# Distribution packages and local test output
+*.zip
+*.7z
+/PackageBuild/
