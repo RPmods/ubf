@@ -3,8 +3,8 @@
   "package": {
     "fileName": "UBF-v1.0.3-beta.zip",
     "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.3-beta/UBF-v1.0.3-beta.zip",
-    "size": 302620089,
-    "sha256": "e4e851f6090dc38f7ddf9e96d1a5b9e6dbe434c1b3f82a2ff85376e4f7f82ee1"
+    "size": 435204941,
+    "sha256": "51a2b972429c617d59f9b1b655251f606b95f31b655a48c68fb6fbd3c8fd4664"
   },
   "files": [
     {
@@ -14,13 +14,13 @@
     },
     {
       "path": "Manifest_NonUFSFiles_Win64.txt",
-      "size": 1804,
-      "sha256": "7dada60fa8b56cea78f9c7974c912e3beeae22a2353cbda0d71fc290def9b8b3"
+      "size": 1762,
+      "sha256": "4d6bf0c911e5bd3e4daf1f1bfa6e43ee19fb0ff742622a0ea7bee9fb3beef05f"
     },
     {
       "path": "Manifest_UFSFiles_Win64.txt",
-      "size": 145053,
-      "sha256": "492dc207e623b7a7a5e15fbec97c46babff8a70fdd1240647e98bc994f11b86e"
+      "size": 197794,
+      "sha256": "1efd8034f4c738bd75cdeccca34a2b0016a70893985cc220121c53aee9b77968"
     },
     {
       "path": "NOTICES.txt",
@@ -131,6 +131,31 @@
       "path": "UBF/Binaries/Win64/DML/x64/DirectML.dll",
       "size": 18538488,
       "sha256": "f97b69379ecbdbab7e1dcd2b6170e7f285d367c86ee6718bc401c4d7cef1275c"
+    },
+    {
+      "path": "UBF/Content/Paks/global.ucas",
+      "size": 3208576,
+      "sha256": "55615db3cf2bc00577997467b0d6c37145aa801886e9251ea6d0dec662ed90b3"
+    },
+    {
+      "path": "UBF/Content/Paks/global.utoc",
+      "size": 782,
+      "sha256": "054e95c4728e0f87ecafe204b6e616be372acff0fc753909c5cc9640a9672483"
+    },
+    {
+      "path": "UBF/Content/Paks/UBF-Windows.pak",
+      "size": 10643807,
+      "sha256": "824b09fdf2d6e42875d1760edc72e58378d1c7cf331fbed625b5bddfdee8cdcb"
+    },
+    {
+      "path": "UBF/Content/Paks/UBF-Windows.ucas",
+      "size": 123021584,
+      "sha256": "9efd04336df6a2ef1d116277acc7fabf1fd92b479955f2c01afb46da92ffc4b2"
+    },
+    {
+      "path": "UBF/Content/Paks/UBF-Windows.utoc",
+      "size": 121138,
+      "sha256": "ac7c818adb6b4391a0c078875d0d79c88c88f7c3739a22bf69b0a2cb982b50c4"
     },
     {
       "path": "UBF/Content/Presentation/Audio/musicintro.mp3",
