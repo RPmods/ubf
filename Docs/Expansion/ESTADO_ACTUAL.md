@@ -34,7 +34,7 @@ Este inventario separa código implementado, comprobaciones realizadas y trabajo
 | Salas | Las salas son locales y usan bots. No hay sesiones online/lobby de jugadores remotos ni pruebas de red de 2–6 clientes. |
 | Controles | El remapeo persistente funciona para Q/E/F en el prototipo; falta comprobarlo dentro de PIE, con cambio de mapa y reinicio. |
 | Cierre | Faltan pruebas de salida, muerte, reinicio, cambio de mapa y timers/delegates/actores temporales para todas las rutas, en especial Golem Mode. |
-| Distribución | El candidato del Launcher v1.0.18 está en el repo remoto y el ZIP nuevo existe localmente, pero no se publicó una Release. El juego tiene cambios locales sin commit en `D:\proyectos\UBF-working`; `manifest.json` sigue apuntando correctamente al juego ya publicado v1.0.5-beta. Setup permanece en su repositorio separado. |
+| Distribución | El candidato del Launcher v1.0.18 está en `main` del repo remoto y el ZIP nuevo existe localmente, pero no se publicó una Release. El código del juego y los UAssets están en `main` como commit `52cfd30`; `manifest.json` sigue apuntando al juego ya publicado v1.0.5-beta. Setup permanece en su repositorio separado. |
 | Release | La compilación Shipping no es un paquete cocinado. Faltan compilar el target editor, cocinar/archivar Windows, probar el menú/partida y el flujo Launcher → juego, generar un ZIP y manifest nuevos y después crear la Release del juego. La Release del Launcher también espera una validación interactiva visible. |
 
 ## Referencias de diseño documentadas
