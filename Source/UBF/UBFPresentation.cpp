@@ -17,6 +17,8 @@
 #include "MediaTexture.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "TextureResource.h"
 #include "Styling/CoreStyle.h"
 
 namespace UBFPresentation
@@ -346,7 +348,7 @@ void UUBFPresentationWidget::StartIntroPlayback()
 
 	State = EPresentationState::Intro;
 	StatusText->SetVisibility(ESlateVisibility::Collapsed);
-	VideoImage->SetBrushFromTexture(IntroTexture, true);
+	VideoImage->SetBrushResourceObject(IntroTexture);
 	if (!IntroVideoPlayer->Play() || !IntroAudioPlayer->Play())
 	{
 		ShowDevelopmentError(FText::FromString(TEXT("No se pudo iniciar la introducción de vídeo y audio.")));
@@ -389,7 +391,7 @@ void UUBFPresentationWidget::BeginMenu()
 	State = EPresentationState::Menu;
 	IntroVideoPlayer->Pause();
 	BackgroundPlayer->SetLooping(true);
-	VideoImage->SetBrushFromTexture(BackgroundTexture, true);
+	VideoImage->SetBrushResourceObject(BackgroundTexture);
 	LogoImage->SetVisibility(ESlateVisibility::Visible);
 	PlayButton->SetVisibility(ESlateVisibility::Visible);
 	SessionText->SetVisibility(ESlateVisibility::Visible);
