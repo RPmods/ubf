@@ -63,8 +63,6 @@ private:
 	bool LoadLogo();
 	void TryStartIntro();
 	void StartIntroPlayback();
-	void OnIntroVideoSeekCompleted();
-	void OnBackgroundSeekCompleted();
 	void BeginMenu();
 	void StartLoopMusic();
 	void ShowDevelopmentError(const FText& Reason);
@@ -140,6 +138,4 @@ private:
 	bool bLoopAudioStarted = false;
 	bool bBackgroundReady = false;
 	bool bResourcesValidated = false;
-	bool bIntroSeekReady = false;
-	bool bBackgroundSeekReady = false;
 };

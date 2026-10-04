@@ -21,6 +21,7 @@
 
 namespace UBFPresentation
 {
+	DEFINE_LOG_CATEGORY_STATIC(LogUBFPresentation, Log, All);
 	constexpr float PreparationTimeoutSeconds = 90.0f;
 	const FLinearColor AccentColor(0.92f, 0.04f, 0.10f, 1.0f);
 
@@ -59,6 +60,7 @@ AUBFPresentationGameMode::AUBFPresentationGameMode()
 void AUBFPresentationController::BeginPlay()
 {
 	Super::BeginPlay();
+	UE_LOG(LogUBFPresentation, Log, TEXT("PresentationController iniciado; creando widget de presentación."));
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
@@ -70,6 +72,10 @@ void AUBFPresentationController::BeginPlay()
 	if (PresentationWidget)
 	{
 		PresentationWidget->AddToViewport(1000);
+	}
+	else
+	{
+		UE_LOG(LogUBFPresentation, Error, TEXT("No se pudo crear UUBFPresentationWidget."));
 	}
 }
 
@@ -248,10 +254,13 @@ void UUBFPresentationWidget::PrepareResources()
 	BackgroundPlayer->OnMediaOpenFailed.AddDynamic(this, &UUBFPresentationWidget::OnMediaOpenFailed);
 
 	UpdateStatus(FText::FromString(TEXT("CARGANDO Y PREPARANDO MEDIOS...")));
-	if (!IntroVideoPlayer->OpenSource(IntroVideoSource) ||
-		!IntroAudioPlayer->OpenSource(IntroAudioSource) ||
-		!LoopAudioPlayer->OpenSource(LoopAudioSource) ||
-		!BackgroundPlayer->OpenSource(BackgroundSource))
+	const bool bIntroVideoOpened = IntroVideoPlayer->OpenSource(IntroVideoSource);
+	const bool bIntroAudioOpened = IntroAudioPlayer->OpenSource(IntroAudioSource);
+	const bool bLoopAudioOpened = LoopAudioPlayer->OpenSource(LoopAudioSource);
+	const bool bBackgroundOpened = BackgroundPlayer->OpenSource(BackgroundSource);
+	UE_LOG(LogUBFPresentation, Log, TEXT("OpenSource: intro_video=%d intro_audio=%d loop_audio=%d background=%d"),
+		bIntroVideoOpened, bIntroAudioOpened, bLoopAudioOpened, bBackgroundOpened);
+	if (!bIntroVideoOpened || !bIntroAudioOpened || !bLoopAudioOpened || !bBackgroundOpened)
 	{
 		ShowDevelopmentError(FText::FromString(TEXT("Un MediaPlayer rechazó un recurso al abrirlo.")));
 	}
@@ -323,37 +332,21 @@ void UUBFPresentationWidget::TryStartIntro()
 			TRangeBound<FTimespan>::Exclusive(IntroCutTime));
 		IntroVideoPlayer->SetPlaybackTimeRange(PlaybackRange);
 	}
-	IntroVideoPlayer->OnSeekCompleted.AddDynamic(this, &UUBFPresentationWidget::OnIntroVideoSeekCompleted);
-	BackgroundPlayer->OnSeekCompleted.AddDynamic(this, &UUBFPresentationWidget::OnBackgroundSeekCompleted);
 	bResourcesValidated = true;
-	if (!IntroVideoPlayer->Seek(FTimespan::Zero()) || !BackgroundPlayer->Seek(FTimespan::Zero()))
-	{
-		ShowDevelopmentError(FText::FromString(TEXT("No se pudieron preparar los fotogramas iniciales de los vídeos.")));
-	}
-}
-
-void UUBFPresentationWidget::OnIntroVideoSeekCompleted()
-{
-	bIntroSeekReady = true;
-	StartIntroPlayback();
-}
-
-void UUBFPresentationWidget::OnBackgroundSeekCompleted()
-{
-	bBackgroundSeekReady = true;
+	UE_LOG(LogUBFPresentation, Log, TEXT("Medios validados; iniciando intro sin esperar un Seek opcional."));
 	StartIntroPlayback();
 }
 
 void UUBFPresentationWidget::StartIntroPlayback()
 {
-	if (State != EPresentationState::Preparing || !bResourcesValidated || !bIntroSeekReady || !bBackgroundSeekReady)
+	if (State != EPresentationState::Preparing || !bResourcesValidated)
 	{
 		return;
 	}
 
 	State = EPresentationState::Intro;
 	StatusText->SetVisibility(ESlateVisibility::Collapsed);
-	VideoImage->SetBrushResourceObject(IntroTexture);
+	VideoImage->SetBrushFromTexture(IntroTexture, true);
 	if (!IntroVideoPlayer->Play() || !IntroAudioPlayer->Play())
 	{
 		ShowDevelopmentError(FText::FromString(TEXT("No se pudo iniciar la introducción de vídeo y audio.")));
@@ -396,7 +389,7 @@ void UUBFPresentationWidget::BeginMenu()
 	State = EPresentationState::Menu;
 	IntroVideoPlayer->Pause();
 	BackgroundPlayer->SetLooping(true);
-	VideoImage->SetBrushResourceObject(BackgroundTexture);
+	VideoImage->SetBrushFromTexture(BackgroundTexture, true);
 	LogoImage->SetVisibility(ESlateVisibility::Visible);
 	PlayButton->SetVisibility(ESlateVisibility::Visible);
 	SessionText->SetVisibility(ESlateVisibility::Visible);
