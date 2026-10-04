@@ -4,7 +4,7 @@
 
 ## Referencia pública y concepto
 
-Una ficha de terceros presenta a Nozomidol como artista y VTuber bilingüe con temática de sirena, canto y actuación de voz. No he podido verificar el diseño del avatar en una fuente primaria; la silueta, colores y accesorios de esta propuesta son provisionales y no se deben atribuir como hechos. Fuente: [ficha de terceros](https://streamlape.com/en/creator/nozomidol).
+Consulta: 4 de octubre de 2026. Una ficha de terceros presenta a Nozomidol como artista y VTuber bilingüe (EN/ES), con temática de sirena, canto y actuación de voz. El About de Twitch no fue accesible/indexable durante esta revisión, así que no he podido verificar el diseño del avatar en una fuente primaria; la silueta, colores y accesorios de esta propuesta son provisionales y no se deben atribuir como hechos. [Canal enlazado](https://www.twitch.tv/nozomidol) · [ficha secundaria](https://streamlape.com/en/creator/nozomidol).
 
 **Concepto visual provisional:** combatiente anfibia de fantasía con placas nacaradas abstractas, sin copiar ropa, cara o emblemas. **Personalidad pública confirmada:** creadora ligada al canto y la actuación de voz, según esa ficha; la personalidad de combate es interpretación ficticia: serena y expresiva.
 

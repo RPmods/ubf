@@ -41,6 +41,18 @@ Este inventario separa código implementado, comprobaciones realizadas y trabajo
 
 Los conceptos y kits están en `Docs/Characters/`. No se afirma que los avatares públicos se hayan confirmado: la información insuficiente está indicada dentro de cada ficha. Guías iniciales de IA, controles y salas están en `Docs/AI/`, `Docs/Input/` y `Docs/Rooms/`.
 
+## Investigación inicial de referencias
+
+Consulta pública realizada el 4 de octubre de 2026. La evidencia disponible orienta solo rasgos de contenido/autodescripción; no basta para definir o copiar avatares:
+
+- [Nozomidol](https://streamlape.com/en/creator/nozomidol): ficha secundaria la describe como artista/VTuber bilingüe con temas de sirena, canto y voz; el avatar no se pudo verificar en una página primaria legible.
+- [EmikoAi](https://mobile.twstalker.com/EmikoAiVT): una copia indexada de su bio lo presenta como comediante VTuber y menciona varios idiomas, juegos FPS/Strinova; el About de Twitch no fue indexable.
+- [Maybkchan](https://twitchtracker.com/maybkchan_): ficha de TwitchTracker refleja una autodescripción de juego relajado en español; no aporta evidencia suficiente del diseño del avatar.
+- [Helen Creth](https://vgen.co/HCresth): la página de @HCresth indica contenido en español/inglés y enlaza redes; [Linktree](https://linktr.ee/helencreth) incluye Twitch. No se pudo verificar avatar ni biografía accesible del canal.
+- [Gizz / GizzMurdock](https://bsky.app/profile/gizzmurdock.bsky.social): su bio pública muestra Giselle y contenido de juegos de HoYoverse/Kuro Games; enlaza Twitch y no confirma el avatar. Es una sola persona/personaje.
+
+Las fichas individuales registran estas fuentes y separan explícitamente hechos, autodescripciones y propuestas provisionales.
+
 ## Siguiente secuencia de validación
 
 1. Reiniciar Unreal Editor y probar Arena 1v1/2v2/3v3, llenar con bots, remapeo Q/E/F, personajes repetidos y cambio de mapa.

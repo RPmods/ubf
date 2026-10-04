@@ -4,7 +4,7 @@
 
 ## Referencia pública y concepto
 
-El perfil de Twitch enlazado no proporcionó una biografía legible durante la revisión y no se encontró evidencia fiable suficiente del avatar. Un resultado de búsqueda para `emiko_LXIX` corresponde a otro handle y no se presupone que sea la misma persona. **INFORMACIÓN PÚBLICA INSUFICIENTE** sobre apariencia, colores, personalidad e intereses. No atribuirle rasgos ni copiar imágenes.
+Consulta: 4 de octubre de 2026. El About de Twitch no entregó texto indexable. Una copia indexada del perfil `@EmikoAiVT` se describe como comediante VTuber de vampiro y menciona EN/CN/JP, comedia, gacha, FPS y Strinova; HoloList enlaza ese mismo Twitch. Tomo esos datos como autodescripción secundaria, no como verificación independiente. **INFORMACIÓN PÚBLICA INSUFICIENTE** sobre avatar, colores, ropa y accesorios. No confundir con cuentas de nombre parecido ni copiar imágenes. [Perfil enlazado de Twitch](https://www.twitch.tv/emikoai_) · [bio indexada de X](https://mobile.twstalker.com/EmikoAiVT) · [ficha que enlaza Twitch](https://hololist.net/emikoai/).
 
 **Concepto provisional UBF:** duelista de geometría luminosa con placas neutrales que pueden sustituirse tras verificar el avatar. Personalidad de combate ficticia: observadora y precisa.
 

@@ -4,7 +4,7 @@
 
 ## Referencia pública y concepto
 
-El perfil público de Bluesky se identifica como Giselle y menciona streams de juegos de HoYoverse y Kuro Games. No confirma el aspecto del avatar, sus colores o accesorios. **INFORMACIÓN PÚBLICA INSUFICIENTE** para definir esos rasgos; la apariencia de abajo es propuesta y no una afirmación sobre Gizz. [Perfil público de Bluesky](https://bsky.app/profile/gizzmurdock.bsky.social).
+Consulta: 4 de octubre de 2026. El perfil público de Bluesky muestra el nombre Giselle y habla de sus streams sobre juegos de HoYoverse y Kuro Games, además de enlazar Twitch. No confirma el aspecto del avatar, sus colores o accesorios. **INFORMACIÓN PÚBLICA INSUFICIENTE** para definir esos rasgos; la apariencia de abajo es propuesta y no una afirmación sobre Gizz. Gizz y GizzMurdock siguen siendo la misma persona, no personajes separados. [Perfil público de Bluesky](https://bsky.app/profile/gizzmurdock.bsky.social) · [Twitch enlazado](https://www.twitch.tv/gizzmurdock).
 
 **Concepto visual provisional:** navegante astral de UBF con motivos de constelación originales, sin copiar juegos, personajes ni avatar. Personalidad ficticia: curiosa y entusiasta.
 

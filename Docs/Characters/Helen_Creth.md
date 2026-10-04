@@ -4,7 +4,7 @@
 
 ## Referencia pública y concepto
 
-WEBTOON atribuye a Helen Creth obras de romance/fantasía y describe una de ellas con un pacto accidental con un demonio. Eso confirma una referencia creativa, no la apariencia de un avatar VTuber. **INFORMACIÓN PÚBLICA INSUFICIENTE** para colores, ropa, accesorios y personalidad de canal. No se adapta ningún personaje ni diseño de sus obras. [Perfil de creadora en WEBTOON](https://www.webtoons.com/es/canvas/un-contrato-que-nos-uni%C3%B3/list?title_no=492062).
+Consulta: 4 de octubre de 2026. La página de comisiones de `@HCresth` indica español e inglés y enlaza sus redes; su Linktree enumera Twitch, TikTok y YouTube. No pude corroborar desde una fuente primaria que el canal `helencrethvt` muestre un avatar o biografía accesible. Una obra de WEBTOON bajo el nombre Helen Creth no se toma como lore ni como prueba de identidad del avatar. **INFORMACIÓN PÚBLICA INSUFICIENTE** para apariencia, colores, ropa, accesorios y personalidad de canal. [VGen de @HCresth](https://vgen.co/HCresth) · [Linktree de Helen](https://linktr.ee/helencreth) · [Twitch enlazado](https://www.twitch.tv/helencrethvt).
 
 **Concepto visual provisional:** escribana arcana UBF, con glifos propios y vestuario original. Personalidad ficticia: deliberada y mordaz.
 

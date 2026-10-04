@@ -1,10 +1,10 @@
 # Personajes
 
-La expansión requiere 13 combatientes: Wizz, Akira, Eilene y diez incorporaciones. La pantalla actual de personajes solo muestra tres nombres; todavía no existe selección jugable ni catálogo data-driven completo.
+El prototipo contiene un catálogo en tiempo de ejecución de 13 combatientes: Wizz, Akira, Eilene y diez incorporaciones. La página FIGHTERS ya permite recorrerlos y guardar la selección local; comparte el maniquí y animaciones provisionales, así que la selección no implica que haya modelos ni kits visuales finales.
 
 Antes de integrar nuevos combatientes, cada ficha debe especificar concepto visual, personalidad, estilo de juego, ataque básico/cargado, movilidad, dash, grab, pasiva, Q/E/F, gauge, fortalezas/debilidades e IA. No usar categorías de rol ni limitar repeticiones.
 
-La investigación de los cinco referentes y las restricciones de información confirmada están en [Estado de la expansión](../Expansion/ESTADO_ACTUAL.md#investigación-inicial-de-referencias). Las diez fichas de diseño inicial están enlazadas abajo. Son propuestas, no contenido integrado ni rasgos públicos confirmados.
+La investigación de los cinco referentes y las restricciones de información confirmada están en [Estado de la expansión](../Expansion/ESTADO_ACTUAL.md#investigación-inicial-de-referencias). Las diez fichas de diseño están enlazadas abajo. Sus conceptos visuales y kits son propuestas; el catálogo y el selector están implementados como prototipo, pero no todos los efectos descritos existen en juego.
 
 ## Propuestas de las diez incorporaciones
 

@@ -4,7 +4,7 @@
 
 ## Referencia pública y concepto
 
-El perfil enlazado no expuso información biográfica o visual verificable durante esta revisión. **INFORMACIÓN PÚBLICA INSUFICIENTE** para describir apariencia, personalidad o intereses. El kit no afirma nada sobre la persona ni reutiliza arte del canal.
+Consulta: 4 de octubre de 2026. El About de Twitch no entregó texto indexable. TwitchTracker muestra una autodescripción en español como creadora colombiana que juega de manera relajada; es una pista de tono, no evidencia del avatar ni del carácter fuera de cámara. **INFORMACIÓN PÚBLICA INSUFICIENTE** para apariencia, colores, ropa y accesorios. El kit no afirma esos rasgos ni reutiliza arte del canal. [Canal enlazado](https://www.twitch.tv/maybkchan_) · [perfil indexado](https://twitchtracker.com/maybkchan_).
 
 **Concepto provisional UBF:** una caminante de rutas cinéticas; su estética original queda pendiente de confirmar con material público apropiado. Personalidad de combate ficticia: ingeniosa y paciente.
 
