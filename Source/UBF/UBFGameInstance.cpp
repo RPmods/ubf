@@ -1,5 +1,6 @@
 #include "UBFGameInstance.h"
 
+#include "UBFPlayerData.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/Paths.h"
@@ -105,5 +106,10 @@ void UUBFGameInstance::Init()
 	if (SessionUserName.IsEmpty())
 	{
 		SessionUserName = TEXT("Usuario");
+	}
+
+	if (UUBFPlayerDataSubsystem* PlayerData = GetSubsystem<UUBFPlayerDataSubsystem>())
+	{
+		PlayerData->EnsurePlayerName(SessionUserName);
 	}
 }

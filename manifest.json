@@ -1,37 +1,12 @@
 {
-  "version": "1.0.4-beta",
+  "version": "1.0.5-beta",
   "package": {
-    "fileName": "UBF-v1.0.4-beta.zip",
-    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.4-beta/UBF-v1.0.4-beta.zip",
-    "size": 488806022,
-    "sha256": "5055229aed8d623e1da2131fc92df26029c052bd0e329837b355b29b5b5239e1"
+    "fileName": "UBF-v1.0.5-beta.zip",
+    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.5-beta/UBF-v1.0.5-beta.zip",
+    "size": 522223238,
+    "sha256": "ee88bd227187e0e30c89a23869dc7b22d0a0ec89ab25bd491404f7cd0a97d33d"
   },
   "files": [
-    {
-      "path": "Manifest_DebugFiles_Win64.txt",
-      "size": 214,
-      "sha256": "0c6062068f63e5a2213396517c4fd16fd1dbca5d60e7f0cce3ad5837d2f8136f"
-    },
-    {
-      "path": "Manifest_NonUFSFiles_Win64.txt",
-      "size": 2288,
-      "sha256": "9235f6e104538965cbc461808b3d1506a7c24032d8e2c4faaea9654e057a2b4a"
-    },
-    {
-      "path": "Manifest_UFSFiles_Win64.txt",
-      "size": 202446,
-      "sha256": "2cbcd32551f6a48f954154cae5caf244279218f74094858c427e68b7a3d74c65"
-    },
-    {
-      "path": "NOTICES.txt",
-      "size": 111,
-      "sha256": "ba49ae5586f817b36a2772269f71f899cb1f54b5f2720fad951319edd5e140b8"
-    },
-    {
-      "path": "UBF.exe",
-      "size": 231936,
-      "sha256": "ff0b206e281ba8ccdf0767e26ec718e148f1ef5c1797ebd69796d804e3364685"
-    },
     {
       "path": "Engine/Binaries/ThirdParty/DbgHelp/dbghelp.dll",
       "size": 2232688,
@@ -93,34 +68,29 @@
       "sha256": "fff0f8de0b868b964950fe97c9b60f893e9bc85a4f90b3629c5693db058b97b9"
     },
     {
-      "path": "Engine/Extras/Redist/en-us/vc_redist.arm64.exe",
-      "size": 11751688,
-      "sha256": "9a4540c1ed0ac2a0755c0093a9c01e4b3dbe21b25805318ba495648fc890e14f"
-    },
-    {
-      "path": "Engine/Extras/Redist/en-us/vc_redist.x64.exe",
-      "size": 18569648,
-      "sha256": "c458c6841310561ef6fadef893092ed02d840da205ad0ae9843fb0d2579b3378"
-    },
-    {
       "path": "Engine/Plugins/NNE/NNERuntimeORT/Binaries/ThirdParty/Onnxruntime/Win64/onnxruntime.dll",
       "size": 17339384,
       "sha256": "5df3d744b5cc4421181e9e2c97cadff4e9b1b2b25e80202160e80fc94ff948f2"
     },
     {
-      "path": "UBF/Binaries/Win64/tbb12.dll",
-      "size": 342456,
-      "sha256": "de15a5f93bfd334d4fe32343a81d76f9de0824af8e31b2189637d12545af2673"
+      "path": "Manifest_DebugFiles_Win64.txt",
+      "size": 214,
+      "sha256": "9891de9364edeeb091f859661f63c76d0edfae0ba0d9960ba9799fd18ad8eede"
     },
     {
-      "path": "UBF/Binaries/Win64/tbbmalloc.dll",
-      "size": 117176,
-      "sha256": "74edc04a8f5bc2593a5a555b675c1251d6d90e693ee6a67cfa11dd3b2d17a856"
+      "path": "Manifest_NonUFSFiles_Win64.txt",
+      "size": 2144,
+      "sha256": "3196029d397fdf1eddd2fc3db9006a7a22dfe8010284961435823650425efa37"
     },
     {
-      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
-      "size": 169687552,
-      "sha256": "95ba8486f87c441ba459e8461c658639c8a3c62427cb544231a1a222bb7fb17a"
+      "path": "Manifest_UFSFiles_Win64.txt",
+      "size": 202446,
+      "sha256": "cce2db4d71948b8e6533a37c43e46ddbaf1f182d218ff32faca7e2f60c691113"
+    },
+    {
+      "path": "NOTICES.txt",
+      "size": 111,
+      "sha256": "ba49ae5586f817b36a2772269f71f899cb1f54b5f2720fad951319edd5e140b8"
     },
     {
       "path": "UBF/Binaries/Win64/D3D12/x64/D3D12Core.dll",
@@ -138,6 +108,26 @@
       "sha256": "f97b69379ecbdbab7e1dcd2b6170e7f285d367c86ee6718bc401c4d7cef1275c"
     },
     {
+      "path": "UBF/Binaries/Win64/tbb12.dll",
+      "size": 342456,
+      "sha256": "de15a5f93bfd334d4fe32343a81d76f9de0824af8e31b2189637d12545af2673"
+    },
+    {
+      "path": "UBF/Binaries/Win64/tbbmalloc.dll",
+      "size": 117176,
+      "sha256": "74edc04a8f5bc2593a5a555b675c1251d6d90e693ee6a67cfa11dd3b2d17a856"
+    },
+    {
+      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
+      "size": 169740288,
+      "sha256": "c6f9d94e3c255dce8ed45f478deb080664ed8647903c743a07a8f6efe0beb17a"
+    },
+    {
+      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.pdb",
+      "size": 228028416,
+      "sha256": "7db9e980877f41d5ae08825784ff6f4b622cde4156af35f74ccf9265cccdd97f"
+    },
+    {
       "path": "UBF/Content/Paks/global.ucas",
       "size": 3354656,
       "sha256": "91ac232890d4fdd5613f9d6ae3d0761cdd88a29187c87b035f15b6d6cb709955"
@@ -150,7 +140,7 @@
     {
       "path": "UBF/Content/Paks/UBF-Windows.pak",
       "size": 10695609,
-      "sha256": "0f70f1746ebafb2da7064bcb55dff49df431364df0f4fe70afb122eab7d2d173"
+      "sha256": "2300b43b7c2694c05e468edfdcf00d160830b8c16a4062a565d1a7cebc051d3f"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.ucas",
@@ -211,6 +201,11 @@
       "path": "UBF/Content/Presentation/Videos/videobackground.mp4",
       "size": 190602925,
       "sha256": "40d17e5c6333b91f6884d8c1537af8df6115231b99c9dca958504f4005d90487"
+    },
+    {
+      "path": "UBF.exe",
+      "size": 231936,
+      "sha256": "ff0b206e281ba8ccdf0767e26ec718e148f1ef5c1797ebd69796d804e3364685"
     }
   ]
 }
