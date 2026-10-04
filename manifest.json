@@ -3,8 +3,8 @@
   "package": {
     "fileName": "UBF-v1.0.5-beta.zip",
     "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.5-beta/UBF-v1.0.5-beta.zip",
-    "size": 522223238,
-    "sha256": "ee88bd227187e0e30c89a23869dc7b22d0a0ec89ab25bd491404f7cd0a97d33d"
+    "size": 458967118,
+    "sha256": "dfff574b620aa6cf8a53b23fed8e72d5c94b431534d157dfd338ba9fda39b14c"
   },
   "files": [
     {
@@ -73,11 +73,6 @@
       "sha256": "5df3d744b5cc4421181e9e2c97cadff4e9b1b2b25e80202160e80fc94ff948f2"
     },
     {
-      "path": "Manifest_DebugFiles_Win64.txt",
-      "size": 214,
-      "sha256": "9891de9364edeeb091f859661f63c76d0edfae0ba0d9960ba9799fd18ad8eede"
-    },
-    {
       "path": "Manifest_NonUFSFiles_Win64.txt",
       "size": 2144,
       "sha256": "3196029d397fdf1eddd2fc3db9006a7a22dfe8010284961435823650425efa37"
@@ -121,11 +116,6 @@
       "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
       "size": 169740288,
       "sha256": "c6f9d94e3c255dce8ed45f478deb080664ed8647903c743a07a8f6efe0beb17a"
-    },
-    {
-      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.pdb",
-      "size": 228028416,
-      "sha256": "7db9e980877f41d5ae08825784ff6f4b622cde4156af35f74ccf9265cccdd97f"
     },
     {
       "path": "UBF/Content/Paks/global.ucas",
