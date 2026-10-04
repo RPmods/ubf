@@ -4,6 +4,7 @@ Intermediate/
 DerivedDataCache/
 Saved/
 Build/Windows/FileOpenOrder/
+Build/UBF-v*-Win64-Shipping/
 
 # Visual Studio / IDE output
 .vs/

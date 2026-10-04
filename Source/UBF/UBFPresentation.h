@@ -4,14 +4,16 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
-#include "MediaPlayer.h"
 #include "UBFPresentation.generated.h"
 
+class UAudioComponent;
 class UButton;
 class UCanvasPanel;
 class UFileMediaSource;
 class UImage;
+class UMediaPlayer;
 class UMediaTexture;
+class USoundWave;
 class UTextBlock;
 class UTexture2D;
 class UBorder;
@@ -44,6 +46,7 @@ class UBF_API UUBFPresentationWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
+	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -51,37 +54,30 @@ protected:
 private:
 	enum class EPresentationState : uint8
 	{
-		Preparing,
 		Intro,
 		Menu,
-		BetaError,
-		DevelopmentError
+		BetaError
 	};
 
 	void BuildInterface();
 	void PrepareResources();
 	bool LoadLogo();
-	void TryStartIntro();
-	void StartIntroPlayback();
 	void BeginMenu();
 	void StartLoopMusic();
-	void ShowDevelopmentError(const FText& Reason);
-	void UpdateStatus(const FText& Message);
+	void StartBackgroundVideo();
 	void PositionWidget(UWidget* Widget, const FAnchors& Anchors, const FVector2D& Alignment,
-		const FVector2D& Position, const FVector2D& Size);
+		const FVector2D& Position, const FVector2D& Size, int32 ZOrder);
 
 	UFUNCTION()
 	void OnIntroVideoOpened(FString OpenedUrl);
 	UFUNCTION()
-	void OnIntroAudioOpened(FString OpenedUrl);
+	void OnIntroVideoOpenFailed(FString FailedUrl);
 	UFUNCTION()
 	void OnIntroAudioEnded();
 	UFUNCTION()
-	void OnLoopAudioOpened(FString OpenedUrl);
-	UFUNCTION()
 	void OnBackgroundOpened(FString OpenedUrl);
 	UFUNCTION()
-	void OnMediaOpenFailed(FString FailedUrl);
+	void OnBackgroundOpenFailed(FString FailedUrl);
 	UFUNCTION()
 	void OnPlayClicked();
 
@@ -105,17 +101,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UFileMediaSource> IntroVideoSource;
 	UPROPERTY()
-	TObjectPtr<UFileMediaSource> IntroAudioSource;
-	UPROPERTY()
-	TObjectPtr<UFileMediaSource> LoopAudioSource;
-	UPROPERTY()
 	TObjectPtr<UFileMediaSource> BackgroundSource;
 	UPROPERTY()
 	TObjectPtr<UMediaPlayer> IntroVideoPlayer;
-	UPROPERTY()
-	TObjectPtr<UMediaPlayer> IntroAudioPlayer;
-	UPROPERTY()
-	TObjectPtr<UMediaPlayer> LoopAudioPlayer;
 	UPROPERTY()
 	TObjectPtr<UMediaPlayer> BackgroundPlayer;
 	UPROPERTY()
@@ -124,18 +112,22 @@ private:
 	TObjectPtr<UMediaTexture> BackgroundTexture;
 	UPROPERTY()
 	TObjectPtr<UTexture2D> LogoTexture;
+	UPROPERTY()
+	TObjectPtr<USoundWave> IntroSound;
+	UPROPERTY()
+	TObjectPtr<USoundWave> LoopSound;
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> IntroAudioComponent;
+	UPROPERTY()
+	TObjectPtr<UAudioComponent> LoopAudioComponent;
 
-	EPresentationState State = EPresentationState::Preparing;
-	FTimespan IntroCutTime;
-	float IntroFrameRate = 0.0f;
-	float PreparationElapsed = 0.0f;
+	EPresentationState State = EPresentationState::Intro;
+	FTimespan IntroCutTime = FTimespan::FromSeconds(13.2);
+	float IntroElapsed = 0.0f;
 	float MenuElapsed = 0.0f;
 	float NextGlitchTime = 4.0f;
 	float GlitchRemaining = 0.0f;
 	bool bIntroVideoReady = false;
-	bool bIntroAudioReady = false;
-	bool bLoopAudioReady = false;
-	bool bLoopAudioStarted = false;
-	bool bBackgroundReady = false;
-	bool bResourcesValidated = false;
+	bool bIntroVideoHasAdvanced = false;
+	bool bBackgroundRequested = false;
 };
