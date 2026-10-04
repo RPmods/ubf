@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "InputCoreTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UBFPlayerData.generated.h"
 
@@ -21,6 +22,42 @@ struct FUBFGiftCodeResult
 	FString RewardSummary;
 };
 
+USTRUCT(BlueprintType)
+struct FUBFMatchRewardResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category="UBF|Player Data")
+	bool bSaved = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="UBF|Player Data")
+	int32 Experience = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="UBF|Player Data")
+	int32 Gold = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="UBF|Player Data")
+	int32 EventPoints = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category="UBF|Player Data")
+	int32 NewAccountLevel = 1;
+};
+
+USTRUCT(BlueprintType)
+struct FUBFShopPurchaseResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "UBF|Shop")
+	bool bSucceeded = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UBF|Shop")
+	FString Message;
+
+	UPROPERTY(BlueprintReadOnly, Category = "UBF|Shop")
+	FString ItemName;
+};
+
 /**
  * Local profile used during the open-beta phase.  Widgets never write this object directly;
  * UUBFPlayerDataSubsystem owns validation, persistence and all mutations.
@@ -35,10 +72,43 @@ public:
 	FString PlayerName;
 
 	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile")
+	FName SelectedCharacterId = TEXT("Wizz");
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Controls")
+	TMap<FName, FKey> InputBindings;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile")
 	int32 AccountLevel = 1;
 
 	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile")
 	int32 Experience = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 MatchesPlayed = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 MatchesWon = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 MatchesLost = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 MatchesDrawn = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	float TotalDamageDealt = 0.0f;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	float TotalDamageReceived = 0.0f;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 TotalKnockouts = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 TotalDeaths = 0;
+
+	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Profile|Stats")
+	int32 BestComboHits = 0;
 
 	UPROPERTY(SaveGame, BlueprintReadOnly, Category = "UBF|Currency")
 	int32 Gold = 0;
@@ -86,8 +156,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
 	void EnsurePlayerName(const FString& SuggestedName);
 
+	UFUNCTION(BlueprintPure, Category="UBF|Player Data")
+	FName GetSelectedCharacterId() const;
+
+	UFUNCTION(BlueprintCallable, Category="UBF|Player Data")
+	void SetSelectedCharacterId(FName CharacterId);
+
+	UFUNCTION(BlueprintPure, Category="UBF|Controls")
+	FKey GetInputBinding(FName ActionId) const;
+
+	UFUNCTION(BlueprintCallable, Category="UBF|Controls")
+	bool SetInputBinding(FName ActionId, FKey Key, FString& OutMessage);
+
+	UFUNCTION(BlueprintCallable, Category="UBF|Controls")
+	bool ResetInputBindings();
+
 	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
 	void AddGold(int32 Amount);
+
+	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
+	FUBFMatchRewardResult GrantMatchRewards(float DamageDealt, float DamageReceived,
+		int32 Knockouts, int32 Deaths, int32 MaxComboHits, bool bWon, bool bDraw);
 
 	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
 	bool RemoveGold(int32 Amount);
@@ -103,6 +192,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
 	void AddItem(const FString& ItemName);
+
+	UFUNCTION(BlueprintCallable, Category = "UBF|Shop")
+	FUBFShopPurchaseResult PurchasePrototypeShopItem(const FString& ItemId);
 
 	UFUNCTION(BlueprintCallable, Category = "UBF|Gift Codes")
 	FUBFGiftCodeResult RedeemGiftCode(const FString& RawCode);

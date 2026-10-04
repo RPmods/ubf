@@ -4,6 +4,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "InputCoreTypes.h"
 #include "UBFPresentation.generated.h"
 
 class UAudioComponent;
@@ -12,6 +13,7 @@ class UButton;
 class UCanvasPanel;
 class UEditableTextBox;
 class UFileMediaSource;
+class UHorizontalBox;
 class UImage;
 class UMediaPlayer;
 class UMediaTexture;
@@ -22,6 +24,8 @@ class UVerticalBox;
 class UWidget;
 class UWidgetSwitcher;
 struct FStreamableHandle;
+struct FKeyEvent;
+struct FPointerEvent;
 
 UCLASS()
 class UBF_API AUBFPresentationGameMode : public AGameModeBase
@@ -59,6 +63,8 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 private:
 	enum class EPresentationState : uint8
@@ -78,6 +84,7 @@ private:
 		Inventory,
 		Profile,
 		Shop,
+		Gacha,
 		Codes,
 		Settings
 	};
@@ -101,6 +108,7 @@ private:
 	void SetMenuPage(EMenuPage NewPage);
 	void RefreshPlayerData();
 	void ShowRewardToast(const FString& Summary);
+	void StartCurrencyRewardAnimation(int32 PreviousGold, int32 PreviousEventPoints, int32 PreviousGachaTickets);
 	void PositionWidget(UWidget* Widget, const FAnchors& Anchors, const FVector2D& Alignment,
 		const FVector2D& Position, const FVector2D& Size, int32 ZOrder);
 	void FillWidget(UWidget* Widget, const FAnchors& Anchors, int32 ZOrder);
@@ -153,13 +161,109 @@ private:
 	void OnShopClicked();
 
 	UFUNCTION()
+	void OnGachaClicked();
+
+	UFUNCTION()
+	void OnShopBuyBasicArmorClicked();
+
+	UFUNCTION()
+	void OnShopBuyBasicRingClicked();
+
+	UFUNCTION()
+	void OnShopBuyBasicNecklaceClicked();
+
+	UFUNCTION()
+	void OnShopBuyEventRingClicked();
+
+	UFUNCTION()
+	void OnShopBuyEventNecklaceClicked();
+
+	UFUNCTION()
+	void OnShopBuyEventFrameClicked();
+
+	UFUNCTION()
+	void OnConfirmShopPurchaseClicked();
+
+	UFUNCTION()
+	void OnCancelShopPurchaseClicked();
+
+	UFUNCTION()
 	void OnCodesClicked();
 
 	UFUNCTION()
 	void OnSettingsClicked();
 
 	UFUNCTION()
+	void OnPreviousQualityClicked();
+
+	UFUNCTION()
+	void OnNextQualityClicked();
+
+	UFUNCTION()
+	void OnPreviousFrameLimitClicked();
+
+	UFUNCTION()
+	void OnNextFrameLimitClicked();
+
+	UFUNCTION()
+	void OnRebindPrimaryClicked();
+
+	UFUNCTION()
+	void OnRebindSecondaryClicked();
+
+	UFUNCTION()
+	void OnRebindUltimateClicked();
+
+	UFUNCTION()
+	void OnResetInputBindingsClicked();
+
+	UFUNCTION()
+	void OnToggleVSyncClicked();
+
+	UFUNCTION()
 	void OnRedeemClicked();
+
+	UFUNCTION()
+	void OnTrainingClicked();
+
+	UFUNCTION()
+	void OnPreviousCharacterClicked();
+
+	UFUNCTION()
+	void OnNextCharacterClicked();
+	void RefreshCharacterSelection();
+
+	UFUNCTION()
+	void OnPreviousTeamSizeClicked();
+
+	UFUNCTION()
+	void OnNextTeamSizeClicked();
+
+	UFUNCTION()
+	void OnPreviousGameModeClicked();
+
+	UFUNCTION()
+	void OnNextGameModeClicked();
+
+	UFUNCTION()
+	void OnPreviousBotFillClicked();
+
+	UFUNCTION()
+	void OnNextBotFillClicked();
+
+	UFUNCTION()
+	void OnPreviousBotDifficultyClicked();
+
+	UFUNCTION()
+	void OnNextBotDifficultyClicked();
+
+	void RefreshMatchSetupText();
+	void RefreshSettingsText();
+	void RefreshInputBindingText();
+	void BeginInputRebind(FName ActionId);
+	void CaptureInputBinding(const FKey& Key);
+	void ApplySettingsSelection();
+	void SelectShopOffer(const FString& ItemId, const FString& ConfirmationText);
 
 	UFUNCTION()
 	void OnRetryClicked();
@@ -222,6 +326,60 @@ private:
 	TObjectPtr<UTextBlock> RewardToastText;
 
 	UPROPERTY()
+	TObjectPtr<UTextBlock> MatchFormatValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> GameModeValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> BotFillValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> BotDifficultyValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> MatchSetupHintText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> CharacterNameText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> CharacterDetailsText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> QualityValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> FrameLimitValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> VSyncValueText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> PrimaryBindingText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> SecondaryBindingText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> UltimateBindingText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> InputBindingResultText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> ShopBalanceText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> ShopConfirmationText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> ShopPurchaseResultText;
+
+	UPROPERTY()
+	TObjectPtr<UBorder> ShopConfirmationPanel;
+
+	UPROPERTY()
 	TObjectPtr<UFileMediaSource> IntroVideoSource;
 
 	UPROPERTY()
@@ -271,6 +429,28 @@ private:
 	float GlitchRemaining = 0.0f;
 	float RewardToastRemaining = 0.0f;
 	float RewardToastElapsed = 0.0f;
+	float CurrencyRewardElapsed = 0.0f;
+	int32 CurrencyStartGold = 0;
+	int32 CurrencyStartEventPoints = 0;
+	int32 CurrencyStartGachaTickets = 0;
+	int32 CurrencyTargetGold = 0;
+	int32 CurrencyTargetEventPoints = 0;
+	int32 CurrencyTargetGachaTickets = 0;
+	int32 CurrencyDisplayedGold = 0;
+	int32 CurrencyDisplayedEventPoints = 0;
+	int32 CurrencyDisplayedGachaTickets = 0;
+	int32 SelectedTeamSize = 1;
+	int32 SelectedGameModeIndex = 0;
+	int32 SelectedBotFillModeIndex = 1;
+	int32 SelectedBotDifficultyIndex = 1;
+	int32 SelectedCharacterIndex = 0;
+	TArray<FName> CharacterIds;
+	int32 SelectedQualityIndex = 0;
+	int32 SelectedFrameLimitIndex = 1;
+	bool bVSyncEnabled = true;
+	FString PendingShopItemId;
+	FName PendingInputRebindAction;
+	bool bCurrencyRewardAnimating = false;
 	bool bLogoReady = false;
 	bool bSoundAssetsReady = false;
 	bool bIntroVideoReady = false;

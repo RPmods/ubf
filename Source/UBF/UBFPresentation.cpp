@@ -2,6 +2,7 @@
 
 #include "UBFGameInstance.h"
 #include "UBFPlayerData.h"
+#include "UBFCharacterDefinition.h"
 #include "Brushes/SlateColorBrush.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/AudioComponent.h"
@@ -17,6 +18,7 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Components/ScrollBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
@@ -26,6 +28,8 @@
 #include "HAL/FileManager.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
+#include "InputCoreTypes.h"
+#include "Input/Events.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/GameUserSettings.h"
@@ -50,6 +54,11 @@ namespace UBFPresentation
 	const FLinearColor SubtlePanelColor(0.05f, 0.065f, 0.085f, 0.76f);
 	const FLinearColor TextColor(0.92f, 0.94f, 0.97f, 1.0f);
 	const FLinearColor MutedTextColor(0.62f, 0.68f, 0.74f, 1.0f);
+	const TCHAR* QualityLabels[] = { TEXT("LOW"), TEXT("MEDIUM"), TEXT("HIGH") };
+	constexpr float FrameLimitValues[] = { 30.0f, 60.0f, 90.0f, 120.0f, 144.0f, 165.0f, 240.0f, 0.0f };
+	const TCHAR* FrameLimitLabels[] = { TEXT("30 FPS"), TEXT("60 FPS"), TEXT("90 FPS"), TEXT("120 FPS"),
+		TEXT("144 FPS"), TEXT("165 FPS"), TEXT("240 FPS"), TEXT("SIN LÍMITE") };
+	constexpr int32 FrameLimitCount = 8;
 	constexpr float IntroAndLoopVolume = 0.60f;
 	constexpr float TitleVoiceVolume = 1.00f;
 	const FSoftObjectPath IntroMusicPath(TEXT("/Game/Presentation/Audio/musicintro.musicintro"));
@@ -153,12 +162,17 @@ void AUBFPresentationController::BeginPlay()
 	SetInputMode(FInputModeGameAndUI().SetHideCursorDuringCapture(false));
 
 	// Existing local settings can override DefaultEngine.ini.  Keep the menu bounded even
-	// when a prior uncapped third-person session wrote FrameRateLimit=0.
+	// when a prior uncapped third-person session wrote FrameRateLimit=0. Only initialize
+	// defaults for a fresh or invalid settings file; saved player choices must survive boot.
 	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
 	if (Settings)
 	{
-		Settings->SetFrameRateLimit(60.0f);
-		Settings->SetVSyncEnabled(true);
+		if (Settings->GetOverallScalabilityLevel() < 0)
+		{
+			Settings->SetOverallScalabilityLevel(0);
+			Settings->SetFrameRateLimit(60.0f);
+			Settings->SetVSyncEnabled(true);
+		}
 		Settings->ApplySettings(false);
 	}
 
@@ -176,8 +190,29 @@ void AUBFPresentationController::BeginPlay()
 void UUBFPresentationWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
+	SetIsFocusable(true);
 	BuildInterface();
 	UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Árbol visual de presentación construido."));
+}
+
+FReply UUBFPresentationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (!PendingInputRebindAction.IsNone())
+	{
+		CaptureInputBinding(InKeyEvent.GetKey());
+		return FReply::Handled();
+	}
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UUBFPresentationWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (!PendingInputRebindAction.IsNone())
+	{
+		CaptureInputBinding(InMouseEvent.GetEffectingButton());
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UUBFPresentationWidget::NativeConstruct()
@@ -231,8 +266,8 @@ UButton* UUBFPresentationWidget::CreateMenuButton(const FName& Name, const FStri
 	Style.Hovered = FSlateColorBrush(FLinearColor(0.28f, 0.018f, 0.055f, 0.78f));
 	Style.Pressed = FSlateColorBrush(UBFPresentation::AccentColor);
 	Style.Disabled = FSlateColorBrush(FLinearColor(0.02f, 0.025f, 0.035f, 0.20f));
-	Style.NormalPadding = FMargin(13.0f, 8.0f);
-	Style.PressedPadding = FMargin(13.0f, 8.0f);
+	Style.NormalPadding = FMargin(13.0f, 6.0f);
+	Style.PressedPadding = FMargin(13.0f, 6.0f);
 	Button->SetStyle(Style);
 
 	UHorizontalBox* ButtonLayout = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(),
@@ -353,8 +388,12 @@ void UUBFPresentationWidget::BuildMenu()
 	AddNavigationButton(ProfileButton);
 
 	UVerticalBox* UtilityBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("UtilityNavigation"));
-	PositionWidget(UtilityBox, FAnchors(0.055f, 0.815f), FVector2D::ZeroVector,
-		FVector2D::ZeroVector, FVector2D(385.0f, 170.0f), 1);
+	if (UCanvasPanelSlot* UtilitySlot = Cast<UCanvasPanelSlot>(MenuRoot->AddChild(UtilityBox)))
+	{
+		UtilitySlot->SetAnchors(FAnchors(0.055f, 0.735f, 0.345f, 0.985f));
+		UtilitySlot->SetOffsets(FMargin(0.0f));
+		UtilitySlot->SetZOrder(1);
+	}
 	auto AddUtilityButton = [&UtilityBox](UButton* Button)
 	{
 		if (UVerticalBoxSlot* UtilitySlot = UtilityBox->AddChildToVerticalBox(Button))
@@ -363,9 +402,12 @@ void UUBFPresentationWidget::BuildMenu()
 		}
 	};
 
-	UButton* ShopButton = CreateMenuButton(TEXT("ShopButton"), TEXT("GACHA TICKETS"));
+	UButton* ShopButton = CreateMenuButton(TEXT("ShopButton"), TEXT("SHOP  //  COLLECTION"));
 	ShopButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopClicked);
 	AddUtilityButton(ShopButton);
+	UButton* GachaButton = CreateMenuButton(TEXT("GachaButton"), TEXT("GACHA  //  TICKETS"));
+	GachaButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnGachaClicked);
+	AddUtilityButton(GachaButton);
 	UButton* CodesButton = CreateMenuButton(TEXT("CodesButton"), TEXT("GIFT CODES"));
 	CodesButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnCodesClicked);
 	AddUtilityButton(CodesButton);
@@ -418,6 +460,28 @@ UVerticalBox* UUBFPresentationWidget::CreatePage(const FName& Name, const FStrin
 
 void UUBFPresentationWidget::BuildPages()
 {
+	if (UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr)
+	{
+		const int32 CurrentQuality = Settings->GetOverallScalabilityLevel();
+		if (CurrentQuality >= 0)
+		{
+			SelectedQualityIndex = FMath::Clamp(CurrentQuality, 0, 2);
+		}
+
+		const float CurrentFrameLimit = Settings->GetFrameRateLimit();
+		float ClosestFrameLimitDelta = TNumericLimits<float>::Max();
+		for (int32 Index = 0; Index < UBFPresentation::FrameLimitCount; ++Index)
+		{
+			const float Delta = FMath::Abs(UBFPresentation::FrameLimitValues[Index] - CurrentFrameLimit);
+			if (Delta < ClosestFrameLimitDelta)
+			{
+				ClosestFrameLimitDelta = Delta;
+				SelectedFrameLimitIndex = Index;
+			}
+		}
+		bVSyncEnabled = Settings->IsVSyncEnabled();
+	}
+
 	auto AddPage = [this](UVerticalBox* Page)
 	{
 		PageSwitcher->AddChild(Page);
@@ -434,24 +498,150 @@ void UUBFPresentationWidget::BuildPages()
 	AddPage(HomePage);
 
 	UVerticalBox* PlayPage = CreatePage(TEXT("PlayPage"), TEXT("COMBAT"),
-		TEXT("Elige una red y prepara una sala de combate."));
+		TEXT("Configura una partida local con IA."));
 	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("ServerList"),
-		TEXT("PERU NODE        // OFFLINE\nCHILE NODE       // OFFLINE\nMIAMI NODE       // OFFLINE\n\nUBF CUSTOM       // READY\nEstablece una red privada y entra al listado de salas."),
-		16, UBFPresentation::TextColor), 20.0f);
+		TEXT("PRÁCTICA DE COMBATE  //  LISTA\nHasta 6 luchadores · máximo 3 por equipo"),
+		15, UBFPresentation::TextColor), 12.0f);
 	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("RoomFlow"),
-		TEXT("NETWORK  →  ROOM LIST  →  FIGHT ROOM\nFormato de combate: 1v1, 2v2 y 3v3."),
-		14, UBFPresentation::MutedTextColor));
+		TEXT("Los bots ocupan las plazas libres y pelean por equipos."),
+		13, UBFPresentation::MutedTextColor), 10.0f);
+
+	auto CreateCycleButton = [this](UHorizontalBox* Row, const FName& Name, const FString& Label)
+	{
+		UButton* Button = CreateMenuButton(Name, Label);
+		USizeBox* ButtonSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("_Size"))));
+		ButtonSize->SetWidthOverride(38.0f);
+		ButtonSize->SetHeightOverride(38.0f);
+		ButtonSize->SetContent(Button);
+		Row->AddChildToHorizontalBox(ButtonSize);
+		return Button;
+	};
+
+	UHorizontalBox* FormatRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("MatchFormatRow"));
+	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("MatchFormatLabel"), TEXT("FORMATO"),
+		12, UBFPresentation::GoldColor, true), 5.0f);
+	MatchFormatValueText = CreateText(TEXT("MatchFormatValue"), TEXT("1v1 · 1 por equipo"),
+		15, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* ValueSlot = FormatRow->AddChildToHorizontalBox(MatchFormatValueText))
+	{
+		ValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	CreateCycleButton(FormatRow, TEXT("FormatPrevious"), TEXT("‹"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousTeamSizeClicked);
+	CreateCycleButton(FormatRow, TEXT("FormatNext"), TEXT("›"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextTeamSizeClicked);
+	if (UVerticalBoxSlot* FormatRowSlot = PlayPage->AddChildToVerticalBox(FormatRow))
+	{
+		FormatRowSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+	}
+
+	UHorizontalBox* GameModeRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("GameModeRow"));
+	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("GameModeLabel"), TEXT("MODO DE JUEGO"),
+		12, UBFPresentation::GoldColor, true), 5.0f);
+	GameModeValueText = CreateText(TEXT("GameModeValue"), TEXT("ARENA"), 14, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* ModeValueSlot = GameModeRow->AddChildToHorizontalBox(GameModeValueText))
+	{
+		ModeValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ModeValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	CreateCycleButton(GameModeRow, TEXT("GameModePrevious"), TEXT("‹"))
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousGameModeClicked);
+	CreateCycleButton(GameModeRow, TEXT("GameModeNext"), TEXT("›"))
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextGameModeClicked);
+	if (UVerticalBoxSlot* GameModeSlot = PlayPage->AddChildToVerticalBox(GameModeRow))
+	{
+		GameModeSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+	}
+
+	UHorizontalBox* BotFillRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("BotFillRow"));
+	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("BotFillLabel"), TEXT("LLENADO DE PLAZAS"),
+		12, UBFPresentation::GoldColor, true), 5.0f);
+	BotFillValueText = CreateText(TEXT("BotFillValue"), TEXT("RIVAL COMPLETO CON IA"),
+		14, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* ValueSlot = BotFillRow->AddChildToHorizontalBox(BotFillValueText))
+	{
+		ValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	CreateCycleButton(BotFillRow, TEXT("BotFillPrevious"), TEXT("‹"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousBotFillClicked);
+	CreateCycleButton(BotFillRow, TEXT("BotFillNext"), TEXT("›"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextBotFillClicked);
+	if (UVerticalBoxSlot* BotFillRowSlot = PlayPage->AddChildToVerticalBox(BotFillRow))
+	{
+		BotFillRowSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 8.0f));
+	}
+
+	UHorizontalBox* BotDifficultyRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("BotDifficultyRow"));
+	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("BotDifficultyLabel"), TEXT("DIFICULTAD DE LA IA"),
+		12, UBFPresentation::GoldColor, true), 5.0f);
+	BotDifficultyValueText = CreateText(TEXT("BotDifficultyValue"), TEXT("NORMAL"), 14, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* DifficultyValueSlot = BotDifficultyRow->AddChildToHorizontalBox(BotDifficultyValueText))
+	{
+		DifficultyValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		DifficultyValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	CreateCycleButton(BotDifficultyRow, TEXT("BotDifficultyPrevious"), TEXT("‹"))
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousBotDifficultyClicked);
+	CreateCycleButton(BotDifficultyRow, TEXT("BotDifficultyNext"), TEXT("›"))
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextBotDifficultyClicked);
+	if (UVerticalBoxSlot* DifficultyRowSlot = PlayPage->AddChildToVerticalBox(BotDifficultyRow))
+	{
+		DifficultyRowSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 8.0f));
+	}
+
+	MatchSetupHintText = CreateText(TEXT("MatchSetupHint"), TEXT("La IA buscará y atacará combatientes del otro equipo."),
+		12, UBFPresentation::MutedTextColor);
+	UBFPresentation::AddPageLine(PlayPage, MatchSetupHintText, 3.0f);
+	UButton* TrainingButton = CreateMenuButton(TEXT("TrainingButton"), TEXT("INICIAR COMBATE"));
+	TrainingButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnTrainingClicked);
+	if (UVerticalBoxSlot* TrainingButtonSlot = PlayPage->AddChildToVerticalBox(TrainingButton))
+	{
+		TrainingButtonSlot->SetPadding(FMargin(0.0f, 8.0f, 0.0f, 0.0f));
+	}
 	AddPage(PlayPage);
+	RefreshMatchSetupText();
 
 	UVerticalBox* CharacterPage = CreatePage(TEXT("CharacterPage"), TEXT("FIGHTERS"),
-		TEXT("Roster de combate y preparación de estilo."));
-	UBFPresentation::AddPageLine(CharacterPage, CreateText(TEXT("CharacterList"),
-		TEXT("AKIRA  // Control · Burst · Cyan\nWIZZ   // Aggressive · Pressure · Crimson\nEILENE // Mobile DPS · Energy · Discipline"),
-		17, UBFPresentation::TextColor), 20.0f);
+		TEXT("Elige un estilo de combate. Los personajes repetidos están permitidos."));
+	if (UUBFCharacterCatalogSubsystem* Catalog = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFCharacterCatalogSubsystem>() : nullptr)
+	{
+		CharacterIds = Catalog->GetCharacterIds();
+	}
+	if (const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr)
+	{
+		const int32 SavedIndex = CharacterIds.IndexOfByKey(PlayerData->GetSelectedCharacterId());
+		if (SavedIndex != INDEX_NONE)
+		{
+			SelectedCharacterIndex = SavedIndex;
+		}
+	}
+	UHorizontalBox* CharacterSelectRow = WidgetTree->ConstructWidget<UHorizontalBox>(
+		UHorizontalBox::StaticClass(), TEXT("CharacterSelectRow"));
+	CreateCycleButton(CharacterSelectRow, TEXT("CharacterPrevious"), TEXT("‹"))
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousCharacterClicked);
+	CharacterNameText = CreateText(TEXT("CharacterName"), TEXT("WIZZ"),
+		22, UBFPresentation::GoldColor, true);
+	if (UHorizontalBoxSlot* NameSlot = CharacterSelectRow->AddChildToHorizontalBox(CharacterNameText))
+	{
+		NameSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		NameSlot->SetVerticalAlignment(VAlign_Center);
+		NameSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+	CreateCycleButton(CharacterSelectRow, TEXT("CharacterNext"), TEXT("›"))
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextCharacterClicked);
+	if (UVerticalBoxSlot* CharacterSelectSlot = CharacterPage->AddChildToVerticalBox(CharacterSelectRow))
+	{
+		CharacterSelectSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 14.0f));
+	}
+	CharacterDetailsText = CreateText(TEXT("CharacterDetails"), TEXT(""),
+		14, UBFPresentation::TextColor);
+	UBFPresentation::AddPageLine(CharacterPage, CharacterDetailsText, 18.0f);
 	UBFPresentation::AddPageLine(CharacterPage, CreateText(TEXT("CharacterHint"),
-		TEXT("Selecciona un combatiente para preparar su estilo, equipamiento y entrada."),
-		14, UBFPresentation::MutedTextColor));
+		TEXT("Q · habilidad primaria     E · habilidad secundaria     F · Ultimate\nLas asignaciones se pueden cambiar desde Opciones → Controles."),
+		12, UBFPresentation::MutedTextColor));
 	AddPage(CharacterPage);
+	RefreshCharacterSelection();
 
 	UVerticalBox* InventoryPage = CreatePage(TEXT("InventoryPage"), TEXT("ARMORY"),
 		TEXT("Equipo, accesorios, consumibles y objetos de evento."));
@@ -471,17 +661,90 @@ void UUBFPresentationWidget::BuildPages()
 		14, UBFPresentation::MutedTextColor));
 	AddPage(ProfilePage);
 
-	UVerticalBox* ShopPage = CreatePage(TEXT("ShopPage"), TEXT("GACHA TICKETS"),
-		TEXT("Tickets disponibles para futuras recompensas de colección."));
-	GachaSummaryText = CreateText(TEXT("GachaSummary"), TEXT(""), 16, UBFPresentation::GoldColor, true);
-	UBFPresentation::AddPageLine(ShopPage, GachaSummaryText, 18.0f);
-	UBFPresentation::AddPageLine(ShopPage, CreateText(TEXT("ShopHint"),
-		TEXT("Tus tickets se almacenan de forma persistente en el perfil de UBF."),
-		14, UBFPresentation::MutedTextColor));
+	UVerticalBox* ShopPage = CreatePage(TEXT("ShopPage"), TEXT("SHOP"),
+		TEXT("Equipo y objetos de evento para tu perfil local."));
+	ShopBalanceText = CreateText(TEXT("ShopBalance"), TEXT(""), 13, UBFPresentation::GoldColor, true);
+	UBFPresentation::AddPageLine(ShopPage, ShopBalanceText, 8.0f);
+	UScrollBox* ShopScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("ShopScroll"));
+	ShopScroll->SetScrollBarVisibility(ESlateVisibility::Collapsed);
+	UVerticalBox* ShopLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ShopLayout"));
+	ShopScroll->AddChild(ShopLayout);
+	if (UVerticalBoxSlot* ShopScrollSlot = ShopPage->AddChildToVerticalBox(ShopScroll))
+	{
+		ShopScrollSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
+	UBFPresentation::AddPageLine(ShopLayout, CreateText(TEXT("GoldShopSection"), TEXT("EQUIPO  //  ORO"),
+		12, UBFPresentation::GoldColor, true), 4.0f);
+	UButton* BasicArmorButton = CreateMenuButton(TEXT("ShopBasicArmor"), TEXT("ARMADURA BÁSICA   ·   1,200 ORO"));
+	BasicArmorButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopBuyBasicArmorClicked);
+	UBFPresentation::AddPageLine(ShopLayout, CreateText(TEXT("BasicArmorDescription"), TEXT("Protección inicial para el combatiente."),
+		12, UBFPresentation::MutedTextColor), 2.0f);
+	ShopLayout->AddChildToVerticalBox(BasicArmorButton);
+	UButton* BasicRingButton = CreateMenuButton(TEXT("ShopBasicRing"), TEXT("ANILLO BÁSICO   ·   850 ORO"));
+	BasicRingButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopBuyBasicRingClicked);
+	ShopLayout->AddChildToVerticalBox(BasicRingButton);
+	UButton* BasicNecklaceButton = CreateMenuButton(TEXT("ShopBasicNecklace"), TEXT("COLLAR BÁSICO   ·   1,500 ORO"));
+	BasicNecklaceButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopBuyBasicNecklaceClicked);
+	ShopLayout->AddChildToVerticalBox(BasicNecklaceButton);
+	UBFPresentation::AddPageLine(ShopLayout, CreateText(TEXT("EventShopSection"), TEXT("EVENTO  //  PUNTOS DE EVENTO"),
+		12, UBFPresentation::GoldColor, true), 4.0f);
+	UButton* EventRingButton = CreateMenuButton(TEXT("ShopEventRing"), TEXT("ANILLO DE EVENTO   ·   500 PUNTOS"));
+	EventRingButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopBuyEventRingClicked);
+	ShopLayout->AddChildToVerticalBox(EventRingButton);
+	UButton* EventNecklaceButton = CreateMenuButton(TEXT("ShopEventNecklace"), TEXT("COLLAR DE EVENTO   ·   800 PUNTOS"));
+	EventNecklaceButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopBuyEventNecklaceClicked);
+	ShopLayout->AddChildToVerticalBox(EventNecklaceButton);
+	UButton* EventFrameButton = CreateMenuButton(TEXT("ShopEventFrame"), TEXT("MARCO DE PERFIL   ·   350 PUNTOS"));
+	EventFrameButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopBuyEventFrameClicked);
+	ShopLayout->AddChildToVerticalBox(EventFrameButton);
+	ShopConfirmationPanel = CreatePanel(TEXT("ShopConfirmationPanel"), UBFPresentation::SubtlePanelColor);
+	ShopConfirmationPanel->SetPadding(FMargin(12.0f));
+	UVerticalBox* ShopConfirmationLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ShopConfirmationLayout"));
+	ShopConfirmationText = CreateText(TEXT("ShopConfirmationText"), TEXT(""), 13, UBFPresentation::TextColor, true);
+	UBFPresentation::AddPageLine(ShopConfirmationLayout, ShopConfirmationText, 8.0f);
+	UHorizontalBox* ShopConfirmationButtons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ShopConfirmationButtons"));
+	UButton* ConfirmShopPurchaseButton = CreateMenuButton(TEXT("ConfirmShopPurchase"), TEXT("CONFIRMAR"));
+	ConfirmShopPurchaseButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnConfirmShopPurchaseClicked);
+	UButton* CancelShopPurchaseButton = CreateMenuButton(TEXT("CancelShopPurchase"), TEXT("CANCELAR"));
+	CancelShopPurchaseButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnCancelShopPurchaseClicked);
+	ShopConfirmationButtons->AddChildToHorizontalBox(ConfirmShopPurchaseButton);
+	ShopConfirmationButtons->AddChildToHorizontalBox(CancelShopPurchaseButton);
+	ShopConfirmationLayout->AddChildToVerticalBox(ShopConfirmationButtons);
+	ShopConfirmationPanel->SetContent(ShopConfirmationLayout);
+	ShopConfirmationPanel->SetVisibility(ESlateVisibility::Collapsed);
+	ShopLayout->AddChildToVerticalBox(ShopConfirmationPanel);
+	ShopPurchaseResultText = CreateText(TEXT("ShopPurchaseResult"), TEXT(""), 13, UBFPresentation::TextColor, true);
+	UBFPresentation::AddPageLine(ShopLayout, ShopPurchaseResultText, 10.0f);
 	AddPage(ShopPage);
+
+	UVerticalBox* GachaPage = CreatePage(TEXT("GachaPage"), TEXT("GACHA"),
+		TEXT("Acumula tickets para futuras invocaciones y recompensas."));
+	UBorder* GachaBalancePanel = CreatePanel(TEXT("GachaBalancePanel"), UBFPresentation::SubtlePanelColor);
+	GachaBalancePanel->SetPadding(FMargin(20.0f, 18.0f));
+	GachaSummaryText = CreateText(TEXT("GachaSummary"), TEXT(""), 20, UBFPresentation::GoldColor, true);
+	GachaBalancePanel->SetContent(GachaSummaryText);
+	if (UVerticalBoxSlot* GachaBalanceSlot = GachaPage->AddChildToVerticalBox(GachaBalancePanel))
+	{
+		GachaBalanceSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 18.0f));
+	}
+	UBFPresentation::AddPageLine(GachaPage, CreateText(TEXT("GachaHint"),
+		TEXT("Los tickets se guardan en tu perfil local. El gasto de tickets todavía no está habilitado; no se consumirá ninguno desde este apartado."),
+		14, UBFPresentation::MutedTextColor), 10.0f);
+	UBFPresentation::AddPageLine(GachaPage, CreateText(TEXT("GachaSources"),
+		TEXT("Puedes reunir tickets con los códigos OPENBETALESTGO y RPMODSGAMESBONUS."),
+		13, UBFPresentation::TextColor));
+	AddPage(GachaPage);
 
 	UVerticalBox* CodesPage = CreatePage(TEXT("CodesPage"), TEXT("CÓDIGOS DE REGALO"),
 		TEXT("Cada código se puede canjear una sola vez por perfil local."));
+	UScrollBox* CodesScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("CodesScroll"));
+	CodesScroll->SetScrollBarVisibility(ESlateVisibility::Collapsed);
+	UVerticalBox* CodesLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("CodesLayout"));
+	CodesScroll->AddChild(CodesLayout);
+	if (UVerticalBoxSlot* CodesScrollSlot = CodesPage->AddChildToVerticalBox(CodesScroll))
+	{
+		CodesScrollSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
 	UBorder* InputPanel = CreatePanel(TEXT("GiftInputPanel"), UBFPresentation::SubtlePanelColor);
 	GiftCodeInput = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass(), TEXT("GiftCodeInput"));
 	GiftCodeInput->SetHintText(FText::FromString(TEXT("ESCRIBE TU CÓDIGO")));
@@ -496,32 +759,158 @@ void UUBFPresentationWidget::BuildPages()
 	GiftCodeInput->SetWidgetStyle(GiftCodeStyle);
 	GiftCodeInput->SetForegroundColor(UBFPresentation::TextColor);
 	InputPanel->SetContent(GiftCodeInput);
-	if (UVerticalBoxSlot* InputPanelSlot = CodesPage->AddChildToVerticalBox(InputPanel))
+	if (UVerticalBoxSlot* InputPanelSlot = CodesLayout->AddChildToVerticalBox(InputPanel))
 	{
 		InputPanelSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
 	}
 	UButton* RedeemButton = CreateMenuButton(TEXT("RedeemGiftButton"), TEXT("CANJEAR CÓDIGO"));
 	RedeemButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnRedeemClicked);
-	if (UVerticalBoxSlot* RedeemButtonSlot = CodesPage->AddChildToVerticalBox(RedeemButton))
+	if (UVerticalBoxSlot* RedeemButtonSlot = CodesLayout->AddChildToVerticalBox(RedeemButton))
 	{
 		RedeemButtonSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 14.0f));
 	}
 	GiftCodeResultText = CreateText(TEXT("GiftCodeResult"), TEXT(""), 15, UBFPresentation::GoldColor, true);
-	UBFPresentation::AddPageLine(CodesPage, GiftCodeResultText, 10.0f);
-	UBFPresentation::AddPageLine(CodesPage, CreateText(TEXT("CodesHint"),
+	UBFPresentation::AddPageLine(CodesLayout, GiftCodeResultText, 12.0f);
+	UBorder* AvailableCodesPanel = CreatePanel(TEXT("AvailableCodesPanel"), UBFPresentation::SubtlePanelColor);
+	AvailableCodesPanel->SetPadding(FMargin(14.0f, 12.0f));
+	UTextBlock* AvailableCodesText = CreateText(TEXT("AvailableCodesText"),
+		TEXT("CÓDIGOS DISPONIBLES  ·  01/10/2026\nOPENWELCOME2       +10,000 ORO  ·  +500 EVENTO\nINEEDMONEY21K       +21,000 ORO  ·  +250 EVENTO\nOPENBETALESTGO      +15,000 ORO  ·  +1,000 EVENTO  ·  +10 TICKETS\nMAKEONLYFAI23       1 ANILLO  ·  1 COLLAR ALEATORIOS  ·  +500 EVENTO\nRPMODSGAMESBONUS    +30,000 ORO  ·  +2,000 EVENTO  ·  +100 TICKETS"),
+		12, UBFPresentation::TextColor);
+	AvailableCodesText->SetAutoWrapText(true);
+	AvailableCodesPanel->SetContent(AvailableCodesText);
+	if (UVerticalBoxSlot* AvailableCodesSlot = CodesLayout->AddChildToVerticalBox(AvailableCodesPanel))
+	{
+		AvailableCodesSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
+	}
+	UBFPresentation::AddPageLine(CodesLayout, CreateText(TEXT("CodesHint"),
 		TEXT("Las recompensas de oro, Puntos de Evento, tickets y objetos se guardan inmediatamente."),
 		14, UBFPresentation::MutedTextColor));
 	AddPage(CodesPage);
 
 	UVerticalBox* SettingsPage = CreatePage(TEXT("SettingsPage"), TEXT("OPTIONS"),
-		TEXT("Rendimiento, audio y preferencias del frontend."));
-	UBFPresentation::AddPageLine(SettingsPage, CreateText(TEXT("SettingsData"),
-		TEXT("FRONTEND MODE  //  LOW\nFRAME LIMIT    //  60 FPS + VSYNC\n\nAUDIO BUS      //  MENU · ROOM · MATCH"),
-		16, UBFPresentation::TextColor), 18.0f);
+		TEXT("Rendimiento y preferencias de pantalla."));
+	auto AddSettingsCycleButton = [this](UHorizontalBox* Row, const FName& Name, const FString& Label)
+	{
+		UButton* Button = CreateMenuButton(Name, Label);
+		USizeBox* ButtonSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("_Size"))));
+		ButtonSize->SetWidthOverride(38.0f);
+		ButtonSize->SetHeightOverride(38.0f);
+		ButtonSize->SetContent(Button);
+		Row->AddChildToHorizontalBox(ButtonSize);
+		return Button;
+	};
+	UBFPresentation::AddPageLine(SettingsPage, CreateText(TEXT("QualityLabel"), TEXT("CALIDAD GRÁFICA"),
+		12, UBFPresentation::GoldColor, true), 4.0f);
+	UHorizontalBox* QualityRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("QualityRow"));
+	QualityValueText = CreateText(TEXT("QualityValue"), TEXT("LOW"), 15, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* ValueSlot = QualityRow->AddChildToHorizontalBox(QualityValueText))
+	{
+		ValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	AddSettingsCycleButton(QualityRow, TEXT("QualityPrevious"), TEXT("‹"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousQualityClicked);
+	AddSettingsCycleButton(QualityRow, TEXT("QualityNext"), TEXT("›"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextQualityClicked);
+	if (UVerticalBoxSlot* QualitySlot = SettingsPage->AddChildToVerticalBox(QualityRow))
+	{
+		QualitySlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 9.0f));
+	}
+
+	UBFPresentation::AddPageLine(SettingsPage, CreateText(TEXT("FrameLimitLabel"), TEXT("LÍMITE DE FPS"),
+		12, UBFPresentation::GoldColor, true), 4.0f);
+	UHorizontalBox* FrameLimitRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("FrameLimitRow"));
+	FrameLimitValueText = CreateText(TEXT("FrameLimitValue"), TEXT("60 FPS"), 15, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* ValueSlot = FrameLimitRow->AddChildToHorizontalBox(FrameLimitValueText))
+	{
+		ValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	AddSettingsCycleButton(FrameLimitRow, TEXT("FrameLimitPrevious"), TEXT("‹"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPreviousFrameLimitClicked);
+	AddSettingsCycleButton(FrameLimitRow, TEXT("FrameLimitNext"), TEXT("›"))->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextFrameLimitClicked);
+	if (UVerticalBoxSlot* FrameLimitSlot = SettingsPage->AddChildToVerticalBox(FrameLimitRow))
+	{
+		FrameLimitSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 9.0f));
+	}
+
+	UBFPresentation::AddPageLine(SettingsPage, CreateText(TEXT("VSyncLabel"), TEXT("SINCRONIZACIÓN VERTICAL"),
+		12, UBFPresentation::GoldColor, true), 4.0f);
+	UHorizontalBox* VSyncRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("VSyncRow"));
+	VSyncValueText = CreateText(TEXT("VSyncValue"), TEXT("ACTIVADO"), 15, UBFPresentation::TextColor, true);
+	if (UHorizontalBoxSlot* ValueSlot = VSyncRow->AddChildToHorizontalBox(VSyncValueText))
+	{
+		ValueSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ValueSlot->SetVerticalAlignment(VAlign_Center);
+	}
+	UButton* VSyncButton = CreateMenuButton(TEXT("VSyncButton"), TEXT("CAMBIAR"));
+	VSyncButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnToggleVSyncClicked);
+	if (USizeBox* VSyncButtonSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("VSyncButtonSize")))
+	{
+		VSyncButtonSize->SetWidthOverride(120.0f);
+		VSyncButtonSize->SetHeightOverride(38.0f);
+		VSyncButtonSize->SetContent(VSyncButton);
+		VSyncRow->AddChildToHorizontalBox(VSyncButtonSize);
+	}
+	if (UVerticalBoxSlot* VSyncSlot = SettingsPage->AddChildToVerticalBox(VSyncRow))
+	{
+		VSyncSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+	}
+	UBFPresentation::AddPageLine(SettingsPage, CreateText(TEXT("ControlsLabel"), TEXT("CONTROLES DE HABILIDADES"),
+		12, UBFPresentation::GoldColor, true), 4.0f);
+	auto AddInputBindingRow = [this, SettingsPage](const FName& RowName, const FString& Label,
+		TObjectPtr<UTextBlock>& KeyText) -> UButton*
+	{
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), RowName);
+		UTextBlock* LabelText = CreateText(FName(*(RowName.ToString() + TEXT("_Label"))), Label,
+			13, UBFPresentation::TextColor, true);
+		if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(LabelText))
+		{
+			LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			LabelSlot->SetVerticalAlignment(VAlign_Center);
+		}
+		KeyText = CreateText(FName(*(RowName.ToString() + TEXT("_Key"))), TEXT("Q"),
+			13, UBFPresentation::GoldColor, true);
+		if (UHorizontalBoxSlot* KeySlot = Row->AddChildToHorizontalBox(KeyText))
+		{
+			KeySlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+			KeySlot->SetPadding(FMargin(8.0f, 0.0f, 14.0f, 0.0f));
+			KeySlot->SetVerticalAlignment(VAlign_Center);
+		}
+		UButton* ChangeButton = CreateMenuButton(FName(*(RowName.ToString() + TEXT("_Change"))), TEXT("CAMBIAR"));
+		if (USizeBox* ButtonSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
+			FName(*(RowName.ToString() + TEXT("_ButtonSize")))))
+		{
+			ButtonSize->SetWidthOverride(108.0f);
+			ButtonSize->SetHeightOverride(38.0f);
+			ButtonSize->SetContent(ChangeButton);
+			Row->AddChildToHorizontalBox(ButtonSize);
+		}
+		if (UVerticalBoxSlot* RowSlot = SettingsPage->AddChildToVerticalBox(Row))
+		{
+			RowSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+		}
+		return ChangeButton;
+	};
+	AddInputBindingRow(TEXT("PrimaryBindingRow"), TEXT("HABILIDAD PRIMARIA"), PrimaryBindingText)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnRebindPrimaryClicked);
+	AddInputBindingRow(TEXT("SecondaryBindingRow"), TEXT("HABILIDAD SECUNDARIA"), SecondaryBindingText)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnRebindSecondaryClicked);
+	AddInputBindingRow(TEXT("UltimateBindingRow"), TEXT("ULTIMATE"), UltimateBindingText)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnRebindUltimateClicked);
+	UButton* ResetBindingsButton = CreateMenuButton(TEXT("ResetBindingsButton"), TEXT("RESTABLECER CONTROLES"));
+	ResetBindingsButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnResetInputBindingsClicked);
+	if (UVerticalBoxSlot* ResetBindingsSlot = SettingsPage->AddChildToVerticalBox(ResetBindingsButton))
+	{
+		ResetBindingsSlot->SetPadding(FMargin(0.0f, 3.0f, 0.0f, 8.0f));
+	}
+	InputBindingResultText = CreateText(TEXT("InputBindingResult"), TEXT("Las asignaciones se guardan en este perfil local."),
+		12, UBFPresentation::MutedTextColor);
+	UBFPresentation::AddPageLine(SettingsPage, InputBindingResultText, 8.0f);
 	UBFPresentation::AddPageLine(SettingsPage, CreateText(TEXT("SettingsHint"),
-		TEXT("El menú limita los FPS para evitar consumo continuo de GPU en una pantalla estática."),
-		14, UBFPresentation::MutedTextColor));
+		TEXT("LOW reduce el uso de GPU. Los cambios se guardan localmente y se aplican de inmediato."),
+		13, UBFPresentation::MutedTextColor));
 	AddPage(SettingsPage);
+	RefreshSettingsText();
+	RefreshInputBindingText();
 }
 
 void UUBFPresentationWidget::PositionWidget(UWidget* Widget, const FAnchors& Anchors,
@@ -1038,6 +1427,7 @@ void UUBFPresentationWidget::SetMenuPage(EMenuPage NewPage)
 		TEXT("FIGHTERS"),
 		TEXT("ARMORY"),
 		TEXT("PROFILE"),
+		TEXT("SHOP"),
 		TEXT("GACHA TICKETS"),
 		TEXT("GIFT CODES"),
 		TEXT("OPTIONS")
@@ -1055,6 +1445,9 @@ void UUBFPresentationWidget::RefreshPlayerData()
 	{
 		return;
 	}
+	const int32 DisplayGold = bCurrencyRewardAnimating ? CurrencyDisplayedGold : Data->Gold;
+	const int32 DisplayEventPoints = bCurrencyRewardAnimating ? CurrencyDisplayedEventPoints : Data->EventPoints;
+	const int32 DisplayGachaTickets = bCurrencyRewardAnimating ? CurrencyDisplayedGachaTickets : Data->GachaTickets;
 
 	const int32 NextLevelExperience = FMath::Max(1000, Data->AccountLevel * 1000);
 	if (AccountSummaryText)
@@ -1062,13 +1455,17 @@ void UUBFPresentationWidget::RefreshPlayerData()
 		AccountSummaryText->SetText(FText::FromString(FString::Printf(
 			TEXT("%s  //  LV.%d\nXP %d / %d\nORO %s   ·   EVENTO %s   ·   TICKETS %d"),
 			*Data->PlayerName.ToUpper(), Data->AccountLevel, Data->Experience, NextLevelExperience,
-			*FText::AsNumber(Data->Gold).ToString(), *FText::AsNumber(Data->EventPoints).ToString(), Data->GachaTickets)));
+			*FText::AsNumber(DisplayGold).ToString(), *FText::AsNumber(DisplayEventPoints).ToString(), DisplayGachaTickets)));
 	}
 	if (ProfileSummaryText)
 	{
 		ProfileSummaryText->SetText(FText::FromString(FString::Printf(
-			TEXT("%s\nLV.%d  //  XP %d / %d\n\nPARTIDAS 0\nVICTORIAS 0\nDERROTAS 0\nPERSONAJE MÁS USADO — PENDIENTE"),
-			*Data->PlayerName.ToUpper(), Data->AccountLevel, Data->Experience, NextLevelExperience)));
+			TEXT("%s\nLV.%d  //  XP %d / %d\n\nPARTIDAS %d\nVICTORIAS %d  ·  DERROTAS %d  ·  EMPATES %d\nDAÑO %s  ·  RECIBIDO %s\nKOs %d  ·  CAÍDAS %d  ·  MEJOR COMBO %d HIT\nPERSONAJE MÁS USADO — PENDIENTE"),
+			*Data->PlayerName.ToUpper(), Data->AccountLevel, Data->Experience, NextLevelExperience,
+			Data->MatchesPlayed, Data->MatchesWon, Data->MatchesLost, Data->MatchesDrawn,
+			*FText::AsNumber(FMath::RoundToInt(Data->TotalDamageDealt)).ToString(),
+			*FText::AsNumber(FMath::RoundToInt(Data->TotalDamageReceived)).ToString(),
+			Data->TotalKnockouts, Data->TotalDeaths, Data->BestComboHits)));
 	}
 	if (InventorySummaryText)
 	{
@@ -1081,7 +1478,13 @@ void UUBFPresentationWidget::RefreshPlayerData()
 	if (GachaSummaryText)
 	{
 		GachaSummaryText->SetText(FText::FromString(FString::Printf(
-			TEXT("TICKETS DE GACHA DISPONIBLES: %d"), Data->GachaTickets)));
+			TEXT("TICKETS DE GACHA DISPONIBLES: %d"), DisplayGachaTickets)));
+	}
+	if (ShopBalanceText)
+	{
+		ShopBalanceText->SetText(FText::FromString(FString::Printf(
+			TEXT("ORO  %s     ·     PUNTOS DE EVENTO  %s"),
+			*FText::AsNumber(DisplayGold).ToString(), *FText::AsNumber(DisplayEventPoints).ToString())));
 	}
 }
 
@@ -1094,9 +1497,36 @@ void UUBFPresentationWidget::ShowRewardToast(const FString& Summary)
 	RewardToastText->SetText(FText::FromString(FString::Printf(TEXT("RECOMPENSAS RECIBIDAS\n%s"), *Summary)));
 	RewardToastText->SetRenderOpacity(0.0f);
 	RewardToastText->SetRenderTranslation(FVector2D(0.0f, -24.0f));
+	RewardToastText->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, -24.0f), FVector2D(0.92f), FVector2D::ZeroVector, 0.0f));
 	RewardToastText->SetVisibility(ESlateVisibility::Visible);
 	RewardToastElapsed = 0.0f;
 	RewardToastRemaining = 3.5f;
+}
+
+void UUBFPresentationWidget::StartCurrencyRewardAnimation(int32 PreviousGold, int32 PreviousEventPoints, int32 PreviousGachaTickets)
+{
+	const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance() ?
+		GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+	const UUBFPlayerSaveGame* Data = PlayerData ? PlayerData->GetPlayerData() : nullptr;
+	if (!Data)
+	{
+		return;
+	}
+
+	CurrencyStartGold = PreviousGold;
+	CurrencyStartEventPoints = PreviousEventPoints;
+	CurrencyStartGachaTickets = PreviousGachaTickets;
+	CurrencyTargetGold = Data->Gold;
+	CurrencyTargetEventPoints = Data->EventPoints;
+	CurrencyTargetGachaTickets = Data->GachaTickets;
+	CurrencyDisplayedGold = CurrencyStartGold;
+	CurrencyDisplayedEventPoints = CurrencyStartEventPoints;
+	CurrencyDisplayedGachaTickets = CurrencyStartGachaTickets;
+	CurrencyRewardElapsed = 0.0f;
+	bCurrencyRewardAnimating = CurrencyTargetGold > CurrencyStartGold ||
+		CurrencyTargetEventPoints > CurrencyStartEventPoints ||
+		CurrencyTargetGachaTickets > CurrencyStartGachaTickets;
+	RefreshPlayerData();
 }
 
 void UUBFPresentationWidget::OnPlayClicked()
@@ -1124,6 +1554,86 @@ void UUBFPresentationWidget::OnShopClicked()
 	SetMenuPage(EMenuPage::Shop);
 }
 
+void UUBFPresentationWidget::OnGachaClicked()
+{
+	SetMenuPage(EMenuPage::Gacha);
+}
+
+void UUBFPresentationWidget::OnShopBuyBasicArmorClicked()
+{
+	SelectShopOffer(TEXT("basic_armor"), TEXT("¿Comprar Armadura básica por 1,200 de oro?"));
+}
+
+void UUBFPresentationWidget::OnShopBuyBasicRingClicked()
+{
+	SelectShopOffer(TEXT("basic_ring"), TEXT("¿Comprar Anillo básico por 850 de oro?"));
+}
+
+void UUBFPresentationWidget::OnShopBuyBasicNecklaceClicked()
+{
+	SelectShopOffer(TEXT("basic_necklace"), TEXT("¿Comprar Collar básico por 1,500 de oro?"));
+}
+
+void UUBFPresentationWidget::OnShopBuyEventRingClicked()
+{
+	SelectShopOffer(TEXT("event_ring"), TEXT("¿Canjear 500 Puntos de Evento por un Anillo de evento?"));
+}
+
+void UUBFPresentationWidget::OnShopBuyEventNecklaceClicked()
+{
+	SelectShopOffer(TEXT("event_necklace"), TEXT("¿Canjear 800 Puntos de Evento por un Collar de evento?"));
+}
+
+void UUBFPresentationWidget::OnShopBuyEventFrameClicked()
+{
+	SelectShopOffer(TEXT("event_profile_frame"), TEXT("¿Canjear 350 Puntos de Evento por un Marco de perfil?"));
+}
+
+void UUBFPresentationWidget::SelectShopOffer(const FString& ItemId, const FString& ConfirmationText)
+{
+	if (!ShopConfirmationPanel || !ShopConfirmationText || !ShopPurchaseResultText)
+	{
+		return;
+	}
+	PendingShopItemId = ItemId;
+	ShopConfirmationText->SetText(FText::FromString(ConfirmationText));
+	ShopPurchaseResultText->SetText(FText::GetEmpty());
+	ShopConfirmationPanel->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UUBFPresentationWidget::OnConfirmShopPurchaseClicked()
+{
+	UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+	if (!PlayerData || PendingShopItemId.IsEmpty())
+	{
+		return;
+	}
+
+	const FUBFShopPurchaseResult Result = PlayerData->PurchasePrototypeShopItem(PendingShopItemId);
+	if (ShopPurchaseResultText)
+	{
+		ShopPurchaseResultText->SetColorAndOpacity(FSlateColor(Result.bSucceeded
+			? UBFPresentation::GoldColor : UBFPresentation::AccentColor));
+		ShopPurchaseResultText->SetText(FText::FromString(Result.Message));
+	}
+	if (ShopConfirmationPanel)
+	{
+		ShopConfirmationPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	PendingShopItemId.Reset();
+	RefreshPlayerData();
+}
+
+void UUBFPresentationWidget::OnCancelShopPurchaseClicked()
+{
+	PendingShopItemId.Reset();
+	if (ShopConfirmationPanel)
+	{
+		ShopConfirmationPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
 void UUBFPresentationWidget::OnCodesClicked()
 {
 	SetMenuPage(EMenuPage::Codes);
@@ -1132,6 +1642,158 @@ void UUBFPresentationWidget::OnCodesClicked()
 void UUBFPresentationWidget::OnSettingsClicked()
 {
 	SetMenuPage(EMenuPage::Settings);
+}
+
+void UUBFPresentationWidget::OnRebindPrimaryClicked()
+{
+	BeginInputRebind(TEXT("PrimarySkill"));
+}
+
+void UUBFPresentationWidget::OnRebindSecondaryClicked()
+{
+	BeginInputRebind(TEXT("SecondarySkill"));
+}
+
+void UUBFPresentationWidget::OnRebindUltimateClicked()
+{
+	BeginInputRebind(TEXT("Ultimate"));
+}
+
+void UUBFPresentationWidget::OnResetInputBindingsClicked()
+{
+	PendingInputRebindAction = NAME_None;
+	UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+	const bool bReset = PlayerData && PlayerData->ResetInputBindings();
+	if (InputBindingResultText)
+	{
+		InputBindingResultText->SetText(FText::FromString(bReset
+			? TEXT("Controles restablecidos: Q / E / F.")
+			: TEXT("No se pudieron guardar los controles predeterminados.")));
+		InputBindingResultText->SetColorAndOpacity(FSlateColor(bReset
+			? UBFPresentation::GoldColor : UBFPresentation::AccentColor));
+	}
+	RefreshInputBindingText();
+}
+
+void UUBFPresentationWidget::BeginInputRebind(FName ActionId)
+{
+	PendingInputRebindAction = ActionId;
+	if (InputBindingResultText)
+	{
+		InputBindingResultText->SetText(FText::FromString(TEXT("Presiona una tecla o un botón de ratón. ESC cancela.")));
+		InputBindingResultText->SetColorAndOpacity(FSlateColor(UBFPresentation::GoldColor));
+	}
+	SetKeyboardFocus();
+}
+
+void UUBFPresentationWidget::CaptureInputBinding(const FKey& Key)
+{
+	if (Key == EKeys::Escape)
+	{
+		PendingInputRebindAction = NAME_None;
+		if (InputBindingResultText)
+		{
+			InputBindingResultText->SetText(FText::FromString(TEXT("Cambio cancelado.")));
+		}
+		return;
+	}
+	UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+	FString Message;
+	const bool bSaved = PlayerData && PlayerData->SetInputBinding(PendingInputRebindAction, Key, Message);
+	PendingInputRebindAction = NAME_None;
+	if (InputBindingResultText)
+	{
+		InputBindingResultText->SetText(FText::FromString(Message.IsEmpty()
+			? TEXT("No se pudo guardar el control.") : Message));
+		InputBindingResultText->SetColorAndOpacity(FSlateColor(bSaved
+			? UBFPresentation::GoldColor : UBFPresentation::AccentColor));
+	}
+	RefreshInputBindingText();
+}
+
+void UUBFPresentationWidget::RefreshInputBindingText()
+{
+	const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+	if (!PlayerData)
+	{
+		return;
+	}
+	if (PrimaryBindingText)
+	{
+		PrimaryBindingText->SetText(PlayerData->GetInputBinding(TEXT("PrimarySkill")).GetDisplayName());
+	}
+	if (SecondaryBindingText)
+	{
+		SecondaryBindingText->SetText(PlayerData->GetInputBinding(TEXT("SecondarySkill")).GetDisplayName());
+	}
+	if (UltimateBindingText)
+	{
+		UltimateBindingText->SetText(PlayerData->GetInputBinding(TEXT("Ultimate")).GetDisplayName());
+	}
+}
+
+void UUBFPresentationWidget::OnPreviousQualityClicked()
+{
+	SelectedQualityIndex = SelectedQualityIndex <= 0 ? 2 : SelectedQualityIndex - 1;
+	ApplySettingsSelection();
+}
+
+void UUBFPresentationWidget::OnNextQualityClicked()
+{
+	SelectedQualityIndex = (SelectedQualityIndex + 1) % 3;
+	ApplySettingsSelection();
+}
+
+void UUBFPresentationWidget::OnPreviousFrameLimitClicked()
+{
+	SelectedFrameLimitIndex = SelectedFrameLimitIndex <= 0
+		? UBFPresentation::FrameLimitCount - 1 : SelectedFrameLimitIndex - 1;
+	ApplySettingsSelection();
+}
+
+void UUBFPresentationWidget::OnNextFrameLimitClicked()
+{
+	SelectedFrameLimitIndex = (SelectedFrameLimitIndex + 1) % UBFPresentation::FrameLimitCount;
+	ApplySettingsSelection();
+}
+
+void UUBFPresentationWidget::OnToggleVSyncClicked()
+{
+	bVSyncEnabled = !bVSyncEnabled;
+	ApplySettingsSelection();
+}
+
+void UUBFPresentationWidget::RefreshSettingsText()
+{
+	if (QualityValueText)
+	{
+		QualityValueText->SetText(FText::FromString(UBFPresentation::QualityLabels[FMath::Clamp(SelectedQualityIndex, 0, 2)]));
+	}
+	if (FrameLimitValueText)
+	{
+		FrameLimitValueText->SetText(FText::FromString(UBFPresentation::FrameLimitLabels[
+			FMath::Clamp(SelectedFrameLimitIndex, 0, UBFPresentation::FrameLimitCount - 1)]));
+	}
+	if (VSyncValueText)
+	{
+		VSyncValueText->SetText(FText::FromString(bVSyncEnabled ? TEXT("ACTIVADO") : TEXT("DESACTIVADO")));
+	}
+}
+
+void UUBFPresentationWidget::ApplySettingsSelection()
+{
+	if (UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr)
+	{
+		Settings->SetOverallScalabilityLevel(FMath::Clamp(SelectedQualityIndex, 0, 2));
+		Settings->SetFrameRateLimit(UBFPresentation::FrameLimitValues[
+			FMath::Clamp(SelectedFrameLimitIndex, 0, UBFPresentation::FrameLimitCount - 1)]);
+		Settings->SetVSyncEnabled(bVSyncEnabled);
+		Settings->ApplySettings(false);
+	}
+	RefreshSettingsText();
 }
 
 void UUBFPresentationWidget::OnRedeemClicked()
@@ -1143,6 +1805,10 @@ void UUBFPresentationWidget::OnRedeemClicked()
 		return;
 	}
 
+	const UUBFPlayerSaveGame* PreviousData = PlayerData->GetPlayerData();
+	const int32 PreviousGold = PreviousData ? PreviousData->Gold : 0;
+	const int32 PreviousEventPoints = PreviousData ? PreviousData->EventPoints : 0;
+	const int32 PreviousGachaTickets = PreviousData ? PreviousData->GachaTickets : 0;
 	const FUBFGiftCodeResult Result = PlayerData->RedeemGiftCode(GiftCodeInput->GetText().ToString());
 	GiftCodeResultText->SetColorAndOpacity(FSlateColor(Result.bSucceeded ? UBFPresentation::GoldColor : UBFPresentation::AccentColor));
 	GiftCodeResultText->SetText(FText::FromString(Result.bSucceeded
@@ -1152,6 +1818,175 @@ void UUBFPresentationWidget::OnRedeemClicked()
 	{
 		GiftCodeInput->SetText(FText::GetEmpty());
 		ShowRewardToast(Result.RewardSummary);
+		StartCurrencyRewardAnimation(PreviousGold, PreviousEventPoints, PreviousGachaTickets);
+	}
+}
+
+void UUBFPresentationWidget::OnTrainingClicked()
+{
+	if (State == EPresentationState::Menu)
+	{
+		static const TCHAR* BotFillOptions[] = { TEXT("None"), TEXT("Opponent"), TEXT("All") };
+		static const TCHAR* BotDifficultyOptions[] = { TEXT("Easy"), TEXT("Normal"), TEXT("Hard") };
+		const FName SelectedCharacterId = CharacterIds.IsValidIndex(SelectedCharacterIndex)
+			? CharacterIds[SelectedCharacterIndex] : FName(TEXT("Wizz"));
+		const FString Options = FString::Printf(
+			TEXT("game=/Script/UBF.UBFCombatGameMode?TeamSize=%d?BotFill=%s?BotDifficulty=%s?CharacterID=%s?Mode=%s"),
+			FMath::Clamp(SelectedTeamSize, 1, 3), BotFillOptions[FMath::Clamp(SelectedBotFillModeIndex, 0, 2)],
+			BotDifficultyOptions[FMath::Clamp(SelectedBotDifficultyIndex, 0, 2)],
+			*SelectedCharacterId.ToString(), SelectedGameModeIndex == 1 ? TEXT("Golem") : TEXT("Combat"));
+		UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/UBF_Golem_Arena")), true, Options);
+	}
+}
+
+void UUBFPresentationWidget::OnPreviousCharacterClicked()
+{
+	if (CharacterIds.IsEmpty()) return;
+	SelectedCharacterIndex = SelectedCharacterIndex <= 0 ? CharacterIds.Num() - 1 : SelectedCharacterIndex - 1;
+	if (UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr)
+	{
+		PlayerData->SetSelectedCharacterId(CharacterIds[SelectedCharacterIndex]);
+	}
+	RefreshCharacterSelection();
+}
+
+void UUBFPresentationWidget::OnNextCharacterClicked()
+{
+	if (CharacterIds.IsEmpty()) return;
+	SelectedCharacterIndex = (SelectedCharacterIndex + 1) % CharacterIds.Num();
+	if (UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr)
+	{
+		PlayerData->SetSelectedCharacterId(CharacterIds[SelectedCharacterIndex]);
+	}
+	RefreshCharacterSelection();
+}
+
+void UUBFPresentationWidget::RefreshCharacterSelection()
+{
+	if (!CharacterIds.IsValidIndex(SelectedCharacterIndex))
+	{
+		if (CharacterNameText) CharacterNameText->SetText(FText::FromString(TEXT("SIN PERSONAJES")));
+		if (CharacterDetailsText) CharacterDetailsText->SetText(FText::GetEmpty());
+		return;
+	}
+
+	UUBFCharacterCatalogSubsystem* Catalog = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFCharacterCatalogSubsystem>() : nullptr;
+	const UUBFCharacterDefinition* Definition = Catalog
+		? Catalog->FindCharacter(CharacterIds[SelectedCharacterIndex]) : nullptr;
+	if (!Definition)
+	{
+		return;
+	}
+	if (CharacterNameText)
+	{
+		CharacterNameText->SetText(Definition->DisplayName);
+	}
+	if (CharacterDetailsText)
+	{
+		const FString PrimaryName = Definition->PrimarySkill
+			? Definition->PrimarySkill->DisplayName.ToString() : TEXT("—");
+		const FString SecondaryName = Definition->SecondarySkill
+			? Definition->SecondarySkill->DisplayName.ToString() : TEXT("—");
+		const FString UltimateName = Definition->Ultimate
+			? Definition->Ultimate->DisplayName.ToString() : TEXT("—");
+		const float PrimaryCost = Definition->PrimarySkill ? Definition->PrimarySkill->GaugeCost : 0.0f;
+		const float SecondaryCost = Definition->SecondarySkill ? Definition->SecondarySkill->GaugeCost : 0.0f;
+		const float UltimateCost = Definition->Ultimate ? Definition->Ultimate->GaugeCost : 0.0f;
+		const FString Details = FString::Printf(TEXT("%s\n\nESTILO\n%s\n\nPASIVA · %s\n%s\n\nQ · %s  /  %.0f GAUGE\nE · %s  /  %.0f GAUGE\nF · %s  /  %.0f GAUGE"),
+			*Definition->ShortDescription.ToString(), *Definition->CombatStyle.ToString(),
+			*Definition->PassiveName.ToString(), *Definition->PassiveDescription.ToString(),
+			*PrimaryName, PrimaryCost, *SecondaryName, SecondaryCost, *UltimateName, UltimateCost);
+		CharacterDetailsText->SetText(FText::FromString(Details));
+	}
+}
+
+void UUBFPresentationWidget::OnPreviousTeamSizeClicked()
+{
+	SelectedTeamSize = SelectedTeamSize <= 1 ? 3 : SelectedTeamSize - 1;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnNextTeamSizeClicked()
+{
+	SelectedTeamSize = SelectedTeamSize >= 3 ? 1 : SelectedTeamSize + 1;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnPreviousGameModeClicked()
+{
+	SelectedGameModeIndex = SelectedGameModeIndex <= 0 ? 1 : SelectedGameModeIndex - 1;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnNextGameModeClicked()
+{
+	SelectedGameModeIndex = (SelectedGameModeIndex + 1) % 2;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnPreviousBotFillClicked()
+{
+	SelectedBotFillModeIndex = SelectedBotFillModeIndex <= 0 ? 2 : SelectedBotFillModeIndex - 1;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnNextBotFillClicked()
+{
+	SelectedBotFillModeIndex = (SelectedBotFillModeIndex + 1) % 3;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnPreviousBotDifficultyClicked()
+{
+	SelectedBotDifficultyIndex = SelectedBotDifficultyIndex <= 0 ? 2 : SelectedBotDifficultyIndex - 1;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::OnNextBotDifficultyClicked()
+{
+	SelectedBotDifficultyIndex = (SelectedBotDifficultyIndex + 1) % 3;
+	RefreshMatchSetupText();
+}
+
+void UUBFPresentationWidget::RefreshMatchSetupText()
+{
+	static const TCHAR* FormatLabels[] = { TEXT("1v1 · 1 por equipo"), TEXT("2v2 · 2 por equipo"), TEXT("3v3 · 3 por equipo") };
+	static const TCHAR* GameModeLabels[] = { TEXT("ARENA · eliminación de equipo"), TEXT("GOLEM · portador y Master Golem") };
+	static const TCHAR* BotLabels[] = { TEXT("SIN BOTS"), TEXT("RIVAL COMPLETO CON IA"), TEXT("LLENAR AMBOS EQUIPOS") };
+	static const TCHAR* BotDifficultyLabels[] = { TEXT("FÁCIL"), TEXT("NORMAL"), TEXT("DIFÍCIL") };
+	static const TCHAR* BotHints[] = {
+		TEXT("No se añadirán combatientes controlados por IA."),
+		TEXT("La IA completa las plazas libres del equipo rival."),
+		TEXT("La IA completa las plazas libres de ambos equipos.")
+	};
+	if (MatchFormatValueText)
+	{
+		MatchFormatValueText->SetText(FText::FromString(FormatLabels[FMath::Clamp(SelectedTeamSize - 1, 0, 2)]));
+	}
+	if (GameModeValueText)
+	{
+		GameModeValueText->SetText(FText::FromString(GameModeLabels[FMath::Clamp(SelectedGameModeIndex, 0, 1)]));
+	}
+	if (BotFillValueText)
+	{
+		BotFillValueText->SetText(FText::FromString(BotLabels[FMath::Clamp(SelectedBotFillModeIndex, 0, 2)]));
+	}
+	if (BotDifficultyValueText)
+	{
+		BotDifficultyValueText->SetText(FText::FromString(
+			BotDifficultyLabels[FMath::Clamp(SelectedBotDifficultyIndex, 0, 2)]));
+	}
+	if (MatchSetupHintText)
+	{
+		const FString BotHint = BotHints[FMath::Clamp(SelectedBotFillModeIndex, 0, 2)];
+		const FString ModeHint = SelectedGameModeIndex == 1
+			? TEXT("Recoge el orbe, protege al portador y destruye el Master Golem enemigo.")
+			: FString();
+		MatchSetupHintText->SetText(FText::FromString(ModeHint.IsEmpty()
+			? BotHint : FString::Printf(TEXT("%s\n%s"), *ModeHint, *BotHint)));
 	}
 }
 
@@ -1276,10 +2111,39 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 		const float FadeIn = FMath::Clamp(RewardToastElapsed / 0.22f, 0.0f, 1.0f);
 		const float FadeOut = RewardToastRemaining < 0.55f ? FMath::Clamp(RewardToastRemaining / 0.55f, 0.0f, 1.0f) : 1.0f;
 		RewardToastText->SetRenderOpacity(FadeIn * FadeOut);
-		RewardToastText->SetRenderTranslation(FVector2D(0.0f, FMath::Lerp(-24.0f, 0.0f, FadeIn)));
+		const float Pop = 1.0f - FMath::Square(1.0f - FadeIn);
+		RewardToastText->SetRenderTransform(FWidgetTransform(
+			FVector2D(0.0f, FMath::Lerp(-24.0f, 0.0f, Pop)),
+			FVector2D(FMath::Lerp(0.92f, 1.0f, Pop)), FVector2D::ZeroVector, 0.0f));
 		if (RewardToastRemaining <= 0.0f)
 		{
 			RewardToastText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (bCurrencyRewardAnimating)
+	{
+		CurrencyRewardElapsed += InDeltaTime;
+		const float Progress = FMath::Clamp(CurrencyRewardElapsed / 1.2f, 0.0f, 1.0f);
+		const float EasedProgress = Progress * Progress * (3.0f - 2.0f * Progress);
+		CurrencyDisplayedGold = FMath::RoundToInt(FMath::Lerp(static_cast<float>(CurrencyStartGold), static_cast<float>(CurrencyTargetGold), EasedProgress));
+		CurrencyDisplayedEventPoints = FMath::RoundToInt(FMath::Lerp(static_cast<float>(CurrencyStartEventPoints), static_cast<float>(CurrencyTargetEventPoints), EasedProgress));
+		CurrencyDisplayedGachaTickets = FMath::RoundToInt(FMath::Lerp(static_cast<float>(CurrencyStartGachaTickets), static_cast<float>(CurrencyTargetGachaTickets), EasedProgress));
+		if (AccountSummaryText)
+		{
+			const float Pulse = FMath::Sin(Progress * PI) * 0.10f;
+			AccountSummaryText->SetRenderTransform(FWidgetTransform(FVector2D::ZeroVector,
+				FVector2D(1.0f + Pulse), FVector2D::ZeroVector, 0.0f));
+		}
+		RefreshPlayerData();
+		if (Progress >= 1.0f)
+		{
+			bCurrencyRewardAnimating = false;
+			if (AccountSummaryText)
+			{
+				AccountSummaryText->SetRenderTransform(FWidgetTransform());
+			}
+			RefreshPlayerData();
 		}
 	}
 }

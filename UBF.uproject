@@ -1,6 +1,8 @@
 {
   "FileVersion": 3,
   "EngineAssociation": "5.8",
+  "Category": "",
+  "Description": "",
   "Modules": [
     {
       "Name": "UBF",
@@ -8,9 +10,11 @@
       "LoadingPhase": "Default"
     }
   ],
-  "Category": "",
-  "Description": "",
   "Plugins": [
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    },
     {
       "Name": "WmfMedia",
       "Enabled": true

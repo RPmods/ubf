@@ -7,8 +7,9 @@ public class UBF : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "UMG", "Slate", "SlateCore",
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "Slate", "SlateCore",
 			"Media", "MediaAssets", "ImageWrapper"
 		});
+		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule" });
 	}
 }
