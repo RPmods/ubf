@@ -270,6 +270,7 @@ private:
 	void OnHomeClicked();
 	UFUNCTION()
 	void OnContinueFromWelcomeClicked();
+	UFUNCTION()
 	void OnCloseClosedBetaNoticeClicked();
 	UFUNCTION()
 	void OnContinueCharacterClicked();
@@ -630,7 +631,6 @@ private:
 	float DraftCountdownRemaining = 0.0f;
 	float WelcomeElapsed = 0.0f;
 	float ClosedBetaNoticeElapsed = 0.0f;
-	float EarlyStartButtonElapsed = 0.0f;
 	float MenuEntranceElapsed = 0.0f;
 	float PageEntranceElapsed = 0.0f;
 	float CharacterEntryElapsed = 0.0f;
@@ -661,7 +661,6 @@ private:
 	bool bCurrencyRewardAnimating = false;
 	bool bShowingWelcomeScreen = false;
 	bool bShowingClosedBetaNotice = false;
-	bool bEarlyStartButtonVisible = false;
 	bool bLoadingScreenActive = false;
 	bool bDraftReady = false;
 	bool bDraftCountdownActive = false;

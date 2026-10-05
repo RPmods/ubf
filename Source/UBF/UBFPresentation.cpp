@@ -290,15 +290,6 @@ FReply UUBFPresentationWidget::NativeOnKeyDown(const FGeometry& InGeometry, cons
 		CaptureInputBinding(InKeyEvent.GetKey());
 		return FReply::Handled();
 	}
-	if (bEarlyStartButtonVisible &&
-		(State == EPresentationState::Intro || State == EPresentationState::MenuReveal ||
-			(State == EPresentationState::Menu && bShowingWelcomeScreen)) &&
-		(InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar ||
-			InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
-	{
-		OnContinueFromWelcomeClicked();
-		return FReply::Handled();
-	}
 	if (State == EPresentationState::Draft)
 	{
 		if (InKeyEvent.GetKey() == EKeys::Left && !bDraftReady)
@@ -561,7 +552,7 @@ void UUBFPresentationWidget::BuildClosedBetaNotice()
 		FVector2D::ZeroVector, FVector2D::ZeroVector, 55);
 	ClosedBetaRoot->SetVisibility(ESlateVisibility::Collapsed);
 	UBFPresentation::FillCanvas(ClosedBetaRoot,
-		CreatePanel(TEXT("ClosedBetaDim"), FLinearColor(0.003f, 0.006f, 0.012f, 0.78f)),
+		CreatePanel(TEXT("ClosedBetaDim"), FLinearColor(0.003f, 0.006f, 0.012f, 0.50f)),
 		FAnchors(0.0f, 0.0f, 1.0f, 1.0f), 0);
 
 	UBorder* NoticeCard = CreatePanel(TEXT("ClosedBetaCard"), FLinearColor(0.018f, 0.026f, 0.039f, 0.96f));
@@ -570,6 +561,24 @@ void UUBFPresentationWidget::BuildClosedBetaNotice()
 		FLinearColor(1.0f, 0.85f, 0.52f, 1.0f));
 	UBFPresentation::AddToCanvas(ClosedBetaRoot, NoticeCard, FAnchors(0.5f, 0.5f), FVector2D(0.5f),
 		FVector2D::ZeroVector, FVector2D(610.0f, 320.0f), 1);
+
+	UButton* CloseButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(),
+		TEXT("ClosedBetaCloseButton"));
+	FButtonStyle CloseStyle;
+	CloseStyle.Normal = FSlateColorBrush(FLinearColor(0.035f, 0.045f, 0.060f, 0.82f));
+	CloseStyle.Hovered = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture,
+		FLinearColor(1.0f, 0.92f, 0.72f, 1.0f));
+	CloseStyle.Pressed = FSlateColorBrush(UBFPresentation::AccentColor);
+	CloseStyle.NormalPadding = FMargin(4.0f);
+	CloseStyle.PressedPadding = FMargin(4.0f);
+	CloseButton->SetStyle(CloseStyle);
+	UTextBlock* CloseLabel = CreateText(TEXT("ClosedBetaCloseLabel"), TEXT("X"),
+		17, UBFPresentation::TextColor, true);
+	CloseLabel->SetJustification(ETextJustify::Center);
+	CloseButton->SetContent(CloseLabel);
+	UBFPresentation::AddToCanvas(ClosedBetaRoot, CloseButton, FAnchors(0.5f, 0.5f), FVector2D(0.5f),
+		FVector2D(260.0f, -126.0f), FVector2D(44.0f, 44.0f), 2);
+	CloseButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnCloseClosedBetaNoticeClicked);
 
 	UVerticalBox* NoticeLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
 		TEXT("ClosedBetaLayout"));
@@ -598,7 +607,7 @@ void UUBFPresentationWidget::BuildClosedBetaNotice()
 	ReturnStyle.NormalPadding = FMargin(15.0f, 8.0f);
 	ReturnStyle.PressedPadding = FMargin(15.0f, 10.0f, 15.0f, 6.0f);
 	ReturnButton->SetStyle(ReturnStyle);
-	UTextBlock* ReturnLabel = CreateText(TEXT("ClosedBetaReturnLabel"), TEXT("VOLVER A PORTADA"),
+	UTextBlock* ReturnLabel = CreateText(TEXT("ClosedBetaReturnLabel"), TEXT("VOLVER AL MENÚ"),
 		14, UBFPresentation::TextColor, true);
 	ReturnLabel->SetJustification(ETextJustify::Center);
 	ReturnButton->SetContent(ReturnLabel);
@@ -1732,9 +1741,7 @@ void UUBFPresentationWidget::ResetPresentationResources()
 	bMenuStarted = false;
 	bTitleVoiceStarted = false;
 	bInteractiveMenuShown = false;
-	bEarlyStartButtonVisible = false;
 	BackgroundRevealElapsed = 0.0f;
-	EarlyStartButtonElapsed = 0.0f;
 }
 
 void UUBFPresentationWidget::PrepareResources()
@@ -1744,8 +1751,6 @@ void UUBFPresentationWidget::PrepareResources()
 	State = EPresentationState::Preloading;
 	MenuElapsed = 0.0f;
 	RewardToastRemaining = 0.0f;
-	bEarlyStartButtonVisible = false;
-	EarlyStartButtonElapsed = 0.0f;
 	WelcomeRoot->SetRenderOpacity(0.0f);
 	WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
 	ClosedBetaRoot->SetRenderOpacity(0.0f);
@@ -1994,8 +1999,6 @@ void UUBFPresentationWidget::TryStartIntro()
 	State = EPresentationState::Intro;
 	bIntroPlaybackStarted = true;
 	bIntroAudioStarted = false;
-	bEarlyStartButtonVisible = false;
-	EarlyStartButtonElapsed = 0.0f;
 	WelcomeRoot->SetRenderOpacity(0.0f);
 	WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
 	if (!IntroVideoPlayer->Play())
@@ -2081,6 +2084,9 @@ void UUBFPresentationWidget::StartTitleVoice()
 	UE_LOG(UBFPresentation::LogUBFPresentation, Log,
 		TEXT("Fase de revelación sincronizada: videobackground.mp4 + introdution_ubf_normalized.wav con offset %.3f s."),
 		MediaOffsetSeconds);
+	// Reveal the play prompt on the first frame of the post-intro title voice,
+	// never over intro.mp4.  The voice continues underneath the welcome screen.
+	EnterInteractiveMenu();
 }
 
 void UUBFPresentationWidget::EnterInteractiveMenu()
@@ -2120,19 +2126,9 @@ void UUBFPresentationWidget::EnterInteractiveMenu()
 void UUBFPresentationWidget::OnContinueFromWelcomeClicked()
 {
 	UE_LOG(UBFPresentation::LogUBFPresentation, Log,
-		TEXT("Entrada solicitada: fase=%u, botón temprano=%s, bienvenida=%s."),
-		static_cast<uint8>(State), bEarlyStartButtonVisible ? TEXT("sí") : TEXT("no"),
+		TEXT("Entrada solicitada: fase=%u, bienvenida=%s."),
+		static_cast<uint8>(State),
 		bShowingWelcomeScreen ? TEXT("sí") : TEXT("no"));
-	// Allow the closed-beta notice to open as soon as the action appears over the intro.
-	if (bEarlyStartButtonVisible && State == EPresentationState::Intro)
-	{
-		BeginMenu();
-		UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Entrada temprana: intro detenida y menú de fondo iniciado."));
-	}
-	if (bEarlyStartButtonVisible && State == EPresentationState::MenuReveal && !bInteractiveMenuShown)
-	{
-		EnterInteractiveMenu();
-	}
 	if (State != EPresentationState::Menu || !bShowingWelcomeScreen || bShowingClosedBetaNotice)
 	{
 		return;
@@ -2176,7 +2172,19 @@ void UUBFPresentationWidget::OnCloseClosedBetaNoticeClicked()
 	}
 	bShowingClosedBetaNotice = false;
 	ClosedBetaRoot->SetVisibility(ESlateVisibility::Collapsed);
-	WelcomeRoot->SetVisibility(ESlateVisibility::Visible);
+	if (bShowingWelcomeScreen)
+	{
+		bShowingWelcomeScreen = false;
+		WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
+		MenuEntranceElapsed = 0.0f;
+		PageEntranceElapsed = 0.0f;
+		MenuRoot->SetRenderOpacity(0.0f);
+		MenuRoot->SetVisibility(ESlateVisibility::Visible);
+		if (PageSwitcher)
+		{
+			PageSwitcher->SetRenderOpacity(0.0f);
+		}
+	}
 	SetKeyboardFocus();
 }
 
@@ -2844,16 +2852,7 @@ void UUBFPresentationWidget::OnTrainingClicked()
 {
 	if (State == EPresentationState::Menu && !bShowingWelcomeScreen && ActivePage == EMenuPage::Play)
 	{
-		static const TCHAR* BotFillOptions[] = { TEXT("None"), TEXT("Opponent"), TEXT("All") };
-		static const TCHAR* BotDifficultyOptions[] = { TEXT("Easy"), TEXT("Normal"), TEXT("Hard") };
-		const FName SelectedCharacterId = CharacterIds.IsValidIndex(SelectedCharacterIndex)
-			? CharacterIds[SelectedCharacterIndex] : FName(TEXT("Wizz"));
-		PendingTrainingOptions = FString::Printf(
-			TEXT("game=/Script/UBF.UBFCombatGameMode?TeamSize=%d?BotFill=%s?BotDifficulty=%s?CharacterID=%s?Mode=%s"),
-			FMath::Clamp(SelectedTeamSize, 1, 5), BotFillOptions[FMath::Clamp(SelectedBotFillModeIndex, 0, 2)],
-			BotDifficultyOptions[FMath::Clamp(SelectedBotDifficultyIndex, 0, 2)],
-			*SelectedCharacterId.ToString(), SelectedGameModeIndex == 1 ? TEXT("Golem") : TEXT("Combat"));
-		StartCharacterDraft();
+		ShowClosedBetaNotice();
 	}
 }
 
@@ -3366,28 +3365,6 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 		UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("intro.mp4 llegó a 00:00:13:06; transición inmediata al menú."));
 		BeginMenu();
 		return;
-	}
-
-	// Keep the cinematic intact, but expose a clear way into the hub after three
-	// seconds. The button remains available during the title reveal as well.
-	if (State == EPresentationState::Intro && bIntroPlaybackStarted && IntroVideoPlayer &&
-		!bEarlyStartButtonVisible && IntroVideoPlayer->GetTime() >= FTimespan::FromSeconds(3.0))
-	{
-		bEarlyStartButtonVisible = true;
-		EarlyStartButtonElapsed = 0.0f;
-		WelcomeRoot->SetRenderOpacity(0.0f);
-		WelcomeRoot->SetVisibility(ESlateVisibility::Visible);
-		SetUserFocus(GetOwningPlayer());
-		SetKeyboardFocus();
-		UE_LOG(UBFPresentation::LogUBFPresentation, Log,
-			TEXT("Botón de entrada al menú disponible tras 3 s de intro; se conserva la reproducción de intro.mp4."));
-	}
-
-	if (bEarlyStartButtonVisible && (State == EPresentationState::Intro || State == EPresentationState::MenuReveal))
-	{
-		EarlyStartButtonElapsed += InDeltaTime;
-		const float ButtonReveal = FMath::Clamp(EarlyStartButtonElapsed / 0.38f, 0.0f, 1.0f);
-		WelcomeRoot->SetRenderOpacity(1.0f - FMath::Square(1.0f - ButtonReveal));
 	}
 
 	// musicintro is deliberately delayed until its configured mark of intro.mp4.  The local
