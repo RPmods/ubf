@@ -390,10 +390,6 @@ void AUBFCombatHUD::DrawHUD()
 	const FLinearColor Cyan(0.05f, 0.72f, 0.92f, 1.0f);
 	const FLinearColor Crimson(0.88f, 0.035f, 0.12f, 1.0f);
 
-	DrawRect(Panel, 34.0f, 32.0f, 360.0f, 132.0f);
-	DrawText(TEXT("UBF  //  TRAINING ARENA"), White, 54.0f, 48.0f, GEngine->GetMediumFont(), 0.75f);
-	DrawText(TEXT("SERVER-AUTHORITATIVE COMBAT"), Muted, 54.0f, 78.0f, GEngine->GetSmallFont(), 0.9f);
-
 	AUBFCombatCharacter* Fighter = Cast<AUBFCombatCharacter>(PlayerOwner ? PlayerOwner->GetPawn() : nullptr);
 	const AUBFCombatGameState* MatchState = GetWorld() ? GetWorld()->GetGameState<AUBFCombatGameState>() : nullptr;
 	if (MatchState && MatchState->IsGolemMode())
@@ -449,44 +445,65 @@ void AUBFCombatHUD::DrawHUD()
 	}
 	if (Fighter)
 	{
-		const float BarWidth = 246.0f;
+		const float BottomY = FMath::Max(24.0f, ScreenHeight - 204.0f);
+		const float PlayerPanelX = 32.0f;
+		const float PlayerPanelWidth = FMath::Min(360.0f, ScreenWidth * 0.35f);
+		DrawRect(Panel, PlayerPanelX, BottomY, PlayerPanelWidth, 128.0f);
+		DrawRect(Cyan, PlayerPanelX, BottomY, 3.0f, 128.0f);
+		DrawText(Fighter->GetCharacterDisplayName().ToString(), White,
+			PlayerPanelX + 18.0f, BottomY + 12.0f, GEngine->GetMediumFont(), 0.88f);
+		const float BarWidth = FMath::Max(120.0f, PlayerPanelWidth - 112.0f);
 		const FLinearColor HealthColor = Fighter->GetHealthRatio() > 0.30f ? Cyan : Crimson;
-		DrawRect(FLinearColor(0.11f, 0.13f, 0.17f, 1.0f), 54.0f, 104.0f, BarWidth, 11.0f);
-		DrawRect(HealthColor, 54.0f, 104.0f, BarWidth * Fighter->GetHealthRatio(), 11.0f);
+		DrawText(TEXT("HP"), Muted, PlayerPanelX + 18.0f, BottomY + 48.0f, GEngine->GetSmallFont(), 0.75f);
+		DrawRect(FLinearColor(0.11f, 0.13f, 0.17f, 1.0f), PlayerPanelX + 54.0f, BottomY + 50.0f, BarWidth, 11.0f);
+		DrawRect(HealthColor, PlayerPanelX + 54.0f, BottomY + 50.0f, BarWidth * Fighter->GetHealthRatio(), 11.0f);
 		DrawText(FString::Printf(TEXT("HP %03.0f"), Fighter->GetCurrentHealth()), White,
-			312.0f, 101.0f, GEngine->GetSmallFont(), 0.75f);
+			PlayerPanelX + PlayerPanelWidth - 54.0f, BottomY + 46.0f, GEngine->GetSmallFont(), 0.69f);
 
-		DrawRect(FLinearColor(0.11f, 0.13f, 0.17f, 1.0f), 54.0f, 128.0f, BarWidth, 11.0f);
-		DrawRect(Cyan, 54.0f, 128.0f, BarWidth * Fighter->GetSkillGaugeRatio(), 11.0f);
-		DrawText(FString::Printf(TEXT("GAUGE %03.0f%%"), Fighter->GetCurrentSkillGauge()), Muted,
-			312.0f, 125.0f, GEngine->GetSmallFont(), 0.75f);
+		DrawText(TEXT("GAUGE"), Muted, PlayerPanelX + 18.0f, BottomY + 78.0f, GEngine->GetSmallFont(), 0.75f);
+		DrawRect(FLinearColor(0.11f, 0.13f, 0.17f, 1.0f), PlayerPanelX + 54.0f, BottomY + 80.0f, BarWidth, 11.0f);
+		DrawRect(FLinearColor(0.88f, 0.68f, 0.25f, 1.0f), PlayerPanelX + 54.0f, BottomY + 80.0f,
+			BarWidth * Fighter->GetSkillGaugeRatio(), 11.0f);
+		DrawText(FString::Printf(TEXT("%03.0f%%"), Fighter->GetCurrentSkillGauge()), Muted,
+			PlayerPanelX + PlayerPanelWidth - 54.0f, BottomY + 76.0f, GEngine->GetSmallFont(), 0.69f);
 
 		if (ScreenWidth >= 760.0f)
 		{
-			const float PanelX = ScreenWidth - 338.0f;
-			DrawRect(Panel, PanelX, 32.0f, 304.0f, 124.0f);
-			DrawRect(Cyan, PanelX, 32.0f, 3.0f, 124.0f);
-			DrawText(FString::Printf(TEXT("FIGHTER  //  %s"), *Fighter->GetCharacterDisplayName().ToString()),
-				White, PanelX + 18.0f, 44.0f, GEngine->GetMediumFont(), 0.78f);
+			const float AbilityPanelWidth = FMath::Min(424.0f, ScreenWidth * 0.46f);
+			const float PanelX = ScreenWidth - AbilityPanelWidth - 32.0f;
+			DrawRect(Panel, PanelX, BottomY - 10.0f, AbilityPanelWidth, 138.0f);
+			DrawRect(Cyan, PanelX, BottomY - 10.0f, 3.0f, 138.0f);
+			DrawText(TEXT("HABILIDADES"), White, PanelX + 16.0f, BottomY + 1.0f,
+				GEngine->GetSmallFont(), 0.82f);
+			const float Gap = 7.0f;
+			const float CardWidth = (AbilityPanelWidth - 38.0f - Gap * 2.0f) / 3.0f;
 			for (uint8 Slot = 0; Slot < 3; ++Slot)
 			{
-				const float RowY = 74.0f + static_cast<float>(Slot) * 24.0f;
+				const float CardX = PanelX + 14.0f + static_cast<float>(Slot) * (CardWidth + Gap);
+				const float CardY = BottomY + 24.0f;
 				const float CooldownRatio = Fighter->GetAbilityCooldownRatio(Slot);
 				const float Remaining = Fighter->GetAbilityCooldownRemaining(Slot);
 				const FName ActionId = Slot == 0 ? FName(TEXT("PrimarySkill"))
 					: (Slot == 1 ? FName(TEXT("SecondarySkill")) : FName(TEXT("Ultimate")));
 				const TCHAR* DefaultLabel = Slot == 0 ? TEXT("Q") : (Slot == 1 ? TEXT("E") : TEXT("F"));
-			const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
-				? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
-			const FString InputLabel = PlayerData
-				? PlayerData->GetInputBinding(ActionId).GetDisplayName().ToString() : DefaultLabel;
+				const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+					? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+				const FString InputLabel = PlayerData
+					? PlayerData->GetInputBinding(ActionId).GetDisplayName().ToString() : DefaultLabel;
 				const FString AbilityName = Fighter->GetAbilityDisplayName(Slot).ToString();
-				DrawText(FString::Printf(TEXT("%s  %s"), *InputLabel, *AbilityName), Muted,
-					PanelX + 18.0f, RowY, GEngine->GetSmallFont(), 0.76f);
+				DrawRect(FLinearColor(0.025f, 0.045f, 0.064f, 0.94f), CardX, CardY, CardWidth, 86.0f);
+				DrawRect(Slot == 2 ? FLinearColor(0.94f, 0.70f, 0.22f, 1.0f) : Cyan,
+					CardX, CardY, CardWidth, 2.0f);
+				DrawText(InputLabel, Slot == 2 ? FLinearColor(1.0f, 0.78f, 0.28f, 1.0f) : Cyan,
+					CardX + 9.0f, CardY + 7.0f, GEngine->GetMediumFont(), 0.86f);
+				DrawText(AbilityName.Left(18), White, CardX + 9.0f, CardY + 34.0f,
+					GEngine->GetSmallFont(), 0.68f);
 				DrawText(Remaining > 0.05f ? FString::Printf(TEXT("%.1fs"), Remaining) : TEXT("READY"),
-					Remaining > 0.05f ? Crimson : Cyan, PanelX + 246.0f, RowY, GEngine->GetSmallFont(), 0.72f);
-				DrawRect(FLinearColor(0.10f, 0.15f, 0.20f, 1.0f), PanelX + 18.0f, RowY + 15.0f, 268.0f, 3.0f);
-				DrawRect(Cyan, PanelX + 18.0f, RowY + 15.0f, 268.0f * (1.0f - CooldownRatio), 3.0f);
+					Remaining > 0.05f ? Crimson : Cyan, CardX + 9.0f, CardY + 58.0f,
+					GEngine->GetSmallFont(), 0.68f);
+				DrawRect(FLinearColor(0.10f, 0.15f, 0.20f, 1.0f), CardX + 9.0f, CardY + 76.0f, CardWidth - 18.0f, 4.0f);
+				DrawRect(Cyan, CardX + 9.0f, CardY + 76.0f,
+					(CardWidth - 18.0f) * (1.0f - CooldownRatio), 4.0f);
 			}
 		}
 
@@ -547,11 +564,12 @@ void AUBFCombatHUD::DrawHUD()
 	{
 		const float ScoreWidth = 300.0f;
 		const float ScoreX = (ScreenWidth - ScoreWidth) * 0.5f;
-		DrawRect(Panel, ScoreX, 136.0f, ScoreWidth, 34.0f);
-		DrawRect(Cyan, ScoreX, 136.0f, ScoreWidth, 2.0f);
+		const float ScoreY = MatchState->IsGolemMode() ? 136.0f : 28.0f;
+		DrawRect(Panel, ScoreX, ScoreY, ScoreWidth, 34.0f);
+		DrawRect(Cyan, ScoreX, ScoreY, ScoreWidth, 2.0f);
 		DrawText(FString::Printf(TEXT("RONDA %d / 3     A  %d  :  %d  B"),
 			MatchState->GetRoundNumber(), MatchState->GetRoundWins(0), MatchState->GetRoundWins(1)),
-			White, ScoreX + 29.0f, 146.0f, GEngine->GetSmallFont(), 0.92f);
+			White, ScoreX + 29.0f, ScoreY + 10.0f, GEngine->GetSmallFont(), 0.92f);
 	}
 
 	const EUBFMatchPhase MatchPhase = MatchState
@@ -671,7 +689,7 @@ void AUBFCombatHUD::DrawHUD()
 		const FString PrimaryKey = PlayerData ? PlayerData->GetInputBinding(TEXT("PrimarySkill")).GetDisplayName().ToString() : TEXT("Q");
 		const FString SecondaryKey = PlayerData ? PlayerData->GetInputBinding(TEXT("SecondarySkill")).GetDisplayName().ToString() : TEXT("E");
 		const FString UltimateKey = PlayerData ? PlayerData->GetInputBinding(TEXT("Ultimate")).GetDisplayName().ToString() : TEXT("F");
-		Instructions = FString::Printf(TEXT("WASD MOVE   SPACE JUMP   CTRL DASH   LMB ATTACK   LMB+RMB GRAB   RMB CHARGE   PRIMARY %s   SECONDARY %s   ULTIMATE %s   ESC MENU"),
+		Instructions = FString::Printf(TEXT("WASD MOVER   SPACE SALTAR   CTRL DASH   LMB GOLPE   RMB CARGAR   %s PRINCIPAL   %s SECUNDARIA   %s DEFINITIVA   ESC MENÚ"),
 			*PrimaryKey, *SecondaryKey, *UltimateKey);
 	}
 	if (!bPreparingRound && !bShowingRoundResult)

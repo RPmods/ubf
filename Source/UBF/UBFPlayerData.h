@@ -156,6 +156,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
 	void EnsurePlayerName(const FString& SuggestedName);
 
+	UFUNCTION(BlueprintCallable, Category = "UBF|Player Data")
+	void SyncPlayerNameFromLauncher(const FString& LauncherName);
+
 	UFUNCTION(BlueprintPure, Category="UBF|Player Data")
 	FName GetSelectedCharacterId() const;
 

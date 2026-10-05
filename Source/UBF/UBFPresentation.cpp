@@ -60,6 +60,27 @@ namespace UBFPresentation
 	const FLinearColor CardPanelColor(0.025f, 0.038f, 0.055f, 0.82f);
 	const FLinearColor TextColor(0.92f, 0.94f, 0.97f, 1.0f);
 	const FLinearColor MutedTextColor(0.62f, 0.68f, 0.74f, 1.0f);
+
+	FSlateBrush MakeUIFrameBrush(UTexture2D* Texture, const FLinearColor& Tint = FLinearColor::White)
+	{
+		FSlateBrush Brush;
+		if (Texture)
+		{
+			Brush.SetResourceObject(Texture);
+			Brush.DrawAs = ESlateBrushDrawType::Box;
+			Brush.Margin = FMargin(0.105f);
+			Brush.TintColor = FSlateColor(Tint);
+		}
+		return Brush;
+	}
+
+	void ApplyUIFrame(UBorder* Panel, UTexture2D* Texture, const FLinearColor& Tint = FLinearColor::White)
+	{
+		if (Panel && Texture)
+		{
+			Panel->SetBrush(MakeUIFrameBrush(Texture, Tint));
+		}
+	}
 	const TCHAR* QualityLabels[] = { TEXT("BAJA"), TEXT("MEDIA"), TEXT("ALTA") };
 	constexpr float FrameLimitValues[] = { 30.0f, 60.0f, 90.0f, 120.0f, 144.0f, 165.0f, 240.0f, 0.0f };
 	const TCHAR* FrameLimitLabels[] = { TEXT("30 FPS"), TEXT("60 FPS"), TEXT("90 FPS"), TEXT("120 FPS"),
@@ -197,18 +218,81 @@ void UUBFPresentationWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	SetIsFocusable(true);
+	LoadUIArtResources();
 	BuildInterface();
 	UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Árbol visual de presentación construido."));
 }
 
+void UUBFPresentationWidget::LoadUIArtResources()
+{
+	UIFrameGoldTexture = LoadUITexture(TEXT("panel-frame-gold.png"));
+	UIFrameRedTexture = LoadUITexture(TEXT("panel-frame-red.png"));
+	UIFrameBlueTexture = LoadUITexture(TEXT("panel-frame-blue.png"));
+	UIArmorIconTexture = LoadUITexture(TEXT("icon-armor.png"));
+	UIWeaponIconTexture = LoadUITexture(TEXT("icon-weapon.png"));
+	UIAccessoryIconTexture = LoadUITexture(TEXT("icon-accessory.png"));
+	UICharacterIconTexture = LoadUITexture(TEXT("icon-character.png"));
+	UIShopIconTexture = LoadUITexture(TEXT("icon-shop.png"));
+	UISkillQIconTexture = LoadUITexture(TEXT("skill-q.png"));
+	UISkillEIconTexture = LoadUITexture(TEXT("skill-e.png"));
+	UISkillUltimateIconTexture = LoadUITexture(TEXT("skill-ultimate.png"));
+	UISkillPassiveIconTexture = LoadUITexture(TEXT("skill-passive.png"));
+}
+
+UTexture2D* UUBFPresentationWidget::LoadUITexture(const FString& FileName) const
+{
+	const FString TexturePath = FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Presentation/UIArt"), FileName);
+	TArray<uint8> CompressedBytes;
+	if (!FFileHelper::LoadFileToArray(CompressedBytes, *TexturePath) || CompressedBytes.IsEmpty())
+	{
+		UE_LOG(UBFPresentation::LogUBFPresentation, Warning, TEXT("No se pudo leer el recurso UI: %s"), *TexturePath);
+		return nullptr;
+	}
+
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	if (!ImageWrapper.IsValid() || !ImageWrapper->SetCompressed(CompressedBytes.GetData(), CompressedBytes.Num()))
+	{
+		UE_LOG(UBFPresentation::LogUBFPresentation, Warning, TEXT("El recurso UI no es un PNG válido: %s"), *TexturePath);
+		return nullptr;
+	}
+
+	TArray<uint8> PixelBytes;
+	if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, PixelBytes))
+	{
+		return nullptr;
+	}
+	UTexture2D* Texture = UTexture2D::CreateTransient(ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), PF_B8G8R8A8);
+	if (!Texture || !Texture->GetPlatformData() || Texture->GetPlatformData()->Mips.IsEmpty())
+	{
+		return nullptr;
+	}
+	Texture->SRGB = true;
+	Texture->Filter = TF_Bilinear;
+	Texture->NeverStream = true;
+	FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
+	void* TextureData = Mip.BulkData.Lock(LOCK_READ_WRITE);
+	FMemory::Memcpy(TextureData, PixelBytes.GetData(), PixelBytes.Num());
+	Mip.BulkData.Unlock();
+	Texture->UpdateResource();
+	return Texture;
+}
+
 FReply UUBFPresentationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
+	if (bShowingClosedBetaNotice && InKeyEvent.GetKey() == EKeys::Escape)
+	{
+		OnCloseClosedBetaNoticeClicked();
+		return FReply::Handled();
+	}
 	if (!PendingInputRebindAction.IsNone())
 	{
 		CaptureInputBinding(InKeyEvent.GetKey());
 		return FReply::Handled();
 	}
-	if (State == EPresentationState::Menu && bShowingWelcomeScreen &&
+	if (bEarlyStartButtonVisible &&
+		(State == EPresentationState::Intro || State == EPresentationState::MenuReveal ||
+			(State == EPresentationState::Menu && bShowingWelcomeScreen)) &&
 		(InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar ||
 			InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
 	{
@@ -301,7 +385,8 @@ UButton* UUBFPresentationWidget::CreateMenuButton(const FName& Name, const FStri
 	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
 	FButtonStyle Style;
 	Style.Normal = FSlateColorBrush(FLinearColor(0.012f, 0.020f, 0.032f, 0.42f));
-	Style.Hovered = FSlateColorBrush(FLinearColor(0.28f, 0.018f, 0.055f, 0.78f));
+	Style.Hovered = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture,
+		FLinearColor(1.0f, 0.92f, 0.72f, 1.0f));
 	Style.Pressed = FSlateColorBrush(UBFPresentation::AccentColor);
 	Style.Disabled = FSlateColorBrush(FLinearColor(0.02f, 0.025f, 0.035f, 0.20f));
 	Style.NormalPadding = FMargin(13.0f, 6.0f);
@@ -379,6 +464,7 @@ void UUBFPresentationWidget::BuildInterface()
 
 	BuildMenu();
 	BuildWelcomeScreen();
+	BuildClosedBetaNotice();
 	BuildCharacterDraft();
 
 	LoadingRoot = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("MapLoadingRoot"));
@@ -424,23 +510,103 @@ void UUBFPresentationWidget::BuildWelcomeScreen()
 		FVector2D::ZeroVector, FVector2D::ZeroVector, 12);
 	WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
 
-	UTextBlock* WelcomeEyebrow = CreateText(TEXT("WelcomeEyebrow"), TEXT("UNIVERSAL BREAKING FIGHTERS  //  OPEN BETA"),
-		13, UBFPresentation::GoldColor, true);
-	UBFPresentation::AddToCanvas(WelcomeRoot, WelcomeEyebrow, FAnchors(0.5f, 0.69f), FVector2D(0.5f),
-		FVector2D::ZeroVector, FVector2D(680.0f, 28.0f), 1);
-	WelcomeEyebrow->SetJustification(ETextJustify::Center);
+	UBorder* WelcomeCard = CreatePanel(TEXT("WelcomeCard"), FLinearColor(0.012f, 0.018f, 0.028f, 0.77f));
+	WelcomeCard->SetPadding(FMargin(34.0f, 22.0f));
+	UBFPresentation::ApplyUIFrame(WelcomeCard, UIFrameGoldTexture,
+		FLinearColor(1.0f, 0.87f, 0.60f, 0.98f));
+	UBFPresentation::AddToCanvas(WelcomeRoot, WelcomeCard, FAnchors(0.5f, 0.79f), FVector2D(0.5f),
+		FVector2D::ZeroVector, FVector2D(660.0f, 220.0f), 0);
+	UVerticalBox* WelcomeLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("WelcomeLayout"));
+	WelcomeCard->SetContent(WelcomeLayout);
+	UBFPresentation::AddPageLine(WelcomeLayout,
+		CreateText(TEXT("WelcomeEyebrow"), TEXT("UBF  //  ACCESO A LA BETA"),
+			12, UBFPresentation::GoldColor, true), 3.0f);
+	WelcomeUserNameText = CreateText(TEXT("WelcomeUserName"), TEXT("JUGADOR"),
+		22, UBFPresentation::TextColor, true);
+	UBFPresentation::AddPageLine(WelcomeLayout, WelcomeUserNameText, 2.0f);
+	UBFPresentation::AddPageLine(WelcomeLayout,
+		CreateText(TEXT("WelcomePrompt"), TEXT("Tu perfil se sincroniza con UBF Launcher."),
+			12, UBFPresentation::MutedTextColor), 13.0f);
 
-	UTextBlock* WelcomePrompt = CreateText(TEXT("WelcomePrompt"), TEXT("COMBATE LOCAL  ·  PERSONAJES  ·  MODO GOLEM"),
-		15, UBFPresentation::TextColor, true);
-	UBFPresentation::AddToCanvas(WelcomeRoot, WelcomePrompt, FAnchors(0.5f, 0.735f), FVector2D(0.5f),
-		FVector2D::ZeroVector, FVector2D(720.0f, 32.0f), 1);
-	WelcomePrompt->SetJustification(ETextJustify::Center);
-
-	UButton* ContinueButton = CreateMenuButton(TEXT("WelcomeContinueButton"), TEXT("ENTRAR AL JUEGO"));
-	UBFPresentation::AddToCanvas(WelcomeRoot, ContinueButton, FAnchors(0.5f, 0.82f), FVector2D(0.5f),
-		FVector2D::ZeroVector, FVector2D(310.0f, 58.0f), 2);
+	UButton* ContinueButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(),
+		TEXT("WelcomeContinueButton"));
+	FButtonStyle WelcomeButtonStyle;
+	WelcomeButtonStyle.Normal = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture,
+		FLinearColor(1.0f, 0.84f, 0.46f, 1.0f));
+	WelcomeButtonStyle.Hovered = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture,
+		FLinearColor(1.0f, 0.96f, 0.78f, 1.0f));
+	WelcomeButtonStyle.Pressed = FSlateColorBrush(FLinearColor(0.72f, 0.43f, 0.12f, 1.0f));
+	WelcomeButtonStyle.Disabled = FSlateColorBrush(FLinearColor(0.16f, 0.15f, 0.13f, 0.7f));
+	WelcomeButtonStyle.NormalPadding = FMargin(16.0f, 9.0f);
+	WelcomeButtonStyle.PressedPadding = FMargin(16.0f, 11.0f, 16.0f, 7.0f);
+	ContinueButton->SetStyle(WelcomeButtonStyle);
+	UTextBlock* ContinueLabel = CreateText(TEXT("WelcomeContinueLabel"), TEXT("INICIAR JUEGO"),
+		17, FLinearColor(0.10f, 0.075f, 0.035f, 1.0f), true);
+	ContinueLabel->SetJustification(ETextJustify::Center);
+	ContinueButton->SetContent(ContinueLabel);
+	if (UVerticalBoxSlot* ButtonSlot = WelcomeLayout->AddChildToVerticalBox(ContinueButton))
+	{
+		ButtonSlot->SetPadding(FMargin(0.0f));
+	}
 	ContinueButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnContinueFromWelcomeClicked);
 	WelcomeRoot->SetRenderOpacity(0.0f);
+}
+
+void UUBFPresentationWidget::BuildClosedBetaNotice()
+{
+	ClosedBetaRoot = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(),
+		TEXT("ClosedBetaNoticeRoot"));
+	PositionWidget(ClosedBetaRoot, FAnchors(0.0f, 0.0f, 1.0f, 1.0f), FVector2D::ZeroVector,
+		FVector2D::ZeroVector, FVector2D::ZeroVector, 55);
+	ClosedBetaRoot->SetVisibility(ESlateVisibility::Collapsed);
+	UBFPresentation::FillCanvas(ClosedBetaRoot,
+		CreatePanel(TEXT("ClosedBetaDim"), FLinearColor(0.003f, 0.006f, 0.012f, 0.78f)),
+		FAnchors(0.0f, 0.0f, 1.0f, 1.0f), 0);
+
+	UBorder* NoticeCard = CreatePanel(TEXT("ClosedBetaCard"), FLinearColor(0.018f, 0.026f, 0.039f, 0.96f));
+	NoticeCard->SetPadding(FMargin(38.0f, 32.0f));
+	UBFPresentation::ApplyUIFrame(NoticeCard, UIFrameGoldTexture,
+		FLinearColor(1.0f, 0.85f, 0.52f, 1.0f));
+	UBFPresentation::AddToCanvas(ClosedBetaRoot, NoticeCard, FAnchors(0.5f, 0.5f), FVector2D(0.5f),
+		FVector2D::ZeroVector, FVector2D(610.0f, 320.0f), 1);
+
+	UVerticalBox* NoticeLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("ClosedBetaLayout"));
+	NoticeCard->SetContent(NoticeLayout);
+	UBFPresentation::AddPageLine(NoticeLayout,
+		CreateText(TEXT("ClosedBetaEyebrow"), TEXT("UNIVERSAL BREAKING FIGHTERS"),
+			12, UBFPresentation::GoldColor, true), 11.0f);
+	UTextBlock* NoticeTitle = CreateText(TEXT("ClosedBetaTitle"), TEXT("BETA CERRADA"),
+		30, UBFPresentation::TextColor, true);
+	UBFPresentation::AddPageLine(NoticeLayout, NoticeTitle, 10.0f);
+	UBFPresentation::AddPageLine(NoticeLayout,
+		CreateText(TEXT("ClosedBetaDescription"),
+			TEXT("El acceso al juego está temporalmente limitado. Gracias por tu interés en UBF."),
+			14, UBFPresentation::MutedTextColor), 9.0f);
+	ClosedBetaProfileText = CreateText(TEXT("ClosedBetaProfile"), TEXT("PERFIL  //  JUGADOR"),
+		12, UBFPresentation::GoldColor, true);
+	UBFPresentation::AddPageLine(NoticeLayout, ClosedBetaProfileText, 23.0f);
+
+	UButton* ReturnButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(),
+		TEXT("ClosedBetaReturnButton"));
+	FButtonStyle ReturnStyle;
+	ReturnStyle.Normal = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture,
+		FLinearColor(0.82f, 0.68f, 0.42f, 0.92f));
+	ReturnStyle.Hovered = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture, FLinearColor::White);
+	ReturnStyle.Pressed = FSlateColorBrush(FLinearColor(0.72f, 0.43f, 0.12f, 1.0f));
+	ReturnStyle.NormalPadding = FMargin(15.0f, 8.0f);
+	ReturnStyle.PressedPadding = FMargin(15.0f, 10.0f, 15.0f, 6.0f);
+	ReturnButton->SetStyle(ReturnStyle);
+	UTextBlock* ReturnLabel = CreateText(TEXT("ClosedBetaReturnLabel"), TEXT("VOLVER A PORTADA"),
+		14, UBFPresentation::TextColor, true);
+	ReturnLabel->SetJustification(ETextJustify::Center);
+	ReturnButton->SetContent(ReturnLabel);
+	if (UVerticalBoxSlot* ReturnSlot = NoticeLayout->AddChildToVerticalBox(ReturnButton))
+	{
+		ReturnSlot->SetPadding(FMargin(0.0f));
+	}
+	ReturnButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnCloseClosedBetaNoticeClicked);
 }
 
 void UUBFPresentationWidget::BuildCharacterDraft()
@@ -476,8 +642,9 @@ void UUBFPresentationWidget::BuildCharacterDraft()
 		const FLinearColor& TeamColor, TObjectPtr<UTextBlock>& OutRoster)
 	{
 		UBorder* Panel = CreatePanel(PanelName, FLinearColor(0.014f, 0.024f, 0.038f, 0.86f));
-		Panel->SetPadding(FMargin(20.0f, 18.0f));
 		const bool bBlue = PanelName == FName(TEXT("DraftBluePanel"));
+		UBFPresentation::ApplyUIFrame(Panel, bBlue ? UIFrameBlueTexture : UIFrameRedTexture);
+		Panel->SetPadding(FMargin(20.0f, 18.0f));
 		UBFPresentation::FillCanvas(DraftRoot, Panel,
 			bBlue ? FAnchors(0.755f, 0.24f, 0.965f, 0.65f) : FAnchors(0.035f, 0.24f, 0.245f, 0.65f), 2);
 		UVerticalBox* Layout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
@@ -497,6 +664,7 @@ void UUBFPresentationWidget::BuildCharacterDraft()
 		FLinearColor(0.28f, 0.78f, 0.95f, 1.0f), DraftBlueRosterText);
 
 	UBorder* CharacterPanel = CreatePanel(TEXT("DraftCharacterPanel"), FLinearColor(0.018f, 0.033f, 0.051f, 0.44f));
+	UBFPresentation::ApplyUIFrame(CharacterPanel, UIFrameGoldTexture);
 	CharacterPanel->SetPadding(FMargin(18.0f, 14.0f));
 	UBFPresentation::FillCanvas(DraftRoot, CharacterPanel, FAnchors(0.405f, 0.355f, 0.595f, 0.535f), 2);
 	UTextBlock* CharacterLabel = CreateText(TEXT("DraftCharacterLabel"), TEXT("TU PERSONAJE"),
@@ -524,25 +692,52 @@ void UUBFPresentationWidget::BuildCharacterDraft()
 	DraftNextButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnNextCharacterClicked);
 
 	auto MakeSkillPanel = [this](const FName& Name, const FString& Label, const FAnchors& Anchors,
-		TObjectPtr<UTextBlock>& OutText)
+		TObjectPtr<UTextBlock>& OutText, UTexture2D* IconTexture)
 	{
 		UBorder* Panel = CreatePanel(Name, FLinearColor(0.012f, 0.021f, 0.034f, 0.84f));
-		Panel->SetPadding(FMargin(15.0f, 10.0f));
+		UBFPresentation::ApplyUIFrame(Panel, UIFrameGoldTexture);
+		Panel->SetPadding(FMargin(13.0f, 10.0f));
 		UBFPresentation::FillCanvas(DraftRoot, Panel, Anchors, 1);
 		UVerticalBox* Layout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
 			FName(*(Name.ToString() + TEXT("Layout"))));
 		Panel->SetContent(Layout);
-		UBFPresentation::AddPageLine(Layout,
-			CreateText(FName(*(Name.ToString() + TEXT("Label"))), Label, 11, UBFPresentation::GoldColor, true), 4.0f);
+		UHorizontalBox* Header = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("Header"))));
+		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("IconSize"))));
+		IconSize->SetWidthOverride(26.0f);
+		IconSize->SetHeightOverride(26.0f);
+		UImage* SkillIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+			FName(*(Name.ToString() + TEXT("Icon"))));
+		if (IconTexture)
+		{
+			SkillIcon->SetBrushFromTexture(IconTexture, true);
+		}
+		IconSize->SetContent(SkillIcon);
+		if (UHorizontalBoxSlot* IconSlot = Header->AddChildToHorizontalBox(IconSize))
+		{
+			IconSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
+			IconSlot->SetVerticalAlignment(VAlign_Center);
+		}
+		UTextBlock* SkillLabel = CreateText(FName(*(Name.ToString() + TEXT("Label"))), Label, 11,
+			UBFPresentation::GoldColor, true);
+		if (UHorizontalBoxSlot* LabelSlot = Header->AddChildToHorizontalBox(SkillLabel))
+		{
+			LabelSlot->SetVerticalAlignment(VAlign_Center);
+		}
+		if (UVerticalBoxSlot* HeaderSlot = Layout->AddChildToVerticalBox(Header))
+		{
+			HeaderSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 5.0f));
+		}
 		OutText = CreateText(FName(*(Name.ToString() + TEXT("Details"))), TEXT(""),
-			12, UBFPresentation::TextColor, false);
+			10, UBFPresentation::TextColor, false);
 		OutText->SetAutoWrapText(true);
 		Layout->AddChildToVerticalBox(OutText);
 	};
-	MakeSkillPanel(TEXT("DraftQPanel"), TEXT("Q  ·  HABILIDAD PRIMARIA"), FAnchors(0.255f, 0.68f, 0.495f, 0.785f), DraftPrimarySkillText);
-	MakeSkillPanel(TEXT("DraftEPanel"), TEXT("E  ·  HABILIDAD SECUNDARIA"), FAnchors(0.505f, 0.68f, 0.745f, 0.785f), DraftSecondarySkillText);
-	MakeSkillPanel(TEXT("DraftUltimatePanel"), TEXT("ULT  ·  DEFINITIVA"), FAnchors(0.255f, 0.795f, 0.495f, 0.90f), DraftUltimateText);
-	MakeSkillPanel(TEXT("DraftPassivePanel"), TEXT("PASIVA"), FAnchors(0.505f, 0.795f, 0.745f, 0.90f), DraftPassiveText);
+	MakeSkillPanel(TEXT("DraftQPanel"), TEXT("Q  ·  PRIMARIA"), FAnchors(0.025f, 0.68f, 0.265f, 0.90f), DraftPrimarySkillText, UISkillQIconTexture);
+	MakeSkillPanel(TEXT("DraftEPanel"), TEXT("E  ·  SECUNDARIA"), FAnchors(0.27f, 0.68f, 0.51f, 0.90f), DraftSecondarySkillText, UISkillEIconTexture);
+	MakeSkillPanel(TEXT("DraftUltimatePanel"), TEXT("F  ·  DEFINITIVA"), FAnchors(0.515f, 0.68f, 0.755f, 0.90f), DraftUltimateText, UISkillUltimateIconTexture);
+	MakeSkillPanel(TEXT("DraftPassivePanel"), TEXT("PASIVA"), FAnchors(0.76f, 0.68f, 0.975f, 0.90f), DraftPassiveText, UISkillPassiveIconTexture);
 
 	DraftStatusText = CreateText(TEXT("DraftStatus"), TEXT(""), 12, UBFPresentation::MutedTextColor, true);
 	DraftStatusText->SetJustification(ETextJustify::Center);
@@ -570,6 +765,40 @@ void UUBFPresentationWidget::DestroyDraftShowcase()
 	if (DraftPreviewImage)
 	{
 		DraftPreviewImage->SetBrushResourceObject(nullptr);
+	}
+	if (CharacterPreviewImage)
+	{
+		CharacterPreviewImage->SetBrushResourceObject(nullptr);
+	}
+	if (InventoryCharacterPreviewImage)
+	{
+		InventoryCharacterPreviewImage->SetBrushResourceObject(nullptr);
+	}
+}
+
+void UUBFPresentationWidget::EnsureMenuCharacterShowcase()
+{
+	if (!IsValid(DraftShowcaseActor) && GetWorld())
+	{
+		const FTransform ShowcaseTransform(FRotator::ZeroRotator, FVector(0.0f, 0.0f, 3000.0f));
+		DraftShowcaseActor = GetWorld()->SpawnActor<AUBFDraftShowcaseActor>(
+			AUBFDraftShowcaseActor::StaticClass(), ShowcaseTransform);
+	}
+	if (!IsValid(DraftShowcaseActor))
+	{
+		return;
+	}
+	DraftShowcaseActor->SetSoloPreviewMode(true);
+	const bool bPreviewPageActive = ActivePage == EMenuPage::Character || ActivePage == EMenuPage::Inventory;
+	DraftShowcaseActor->SetShowcaseActive(bPreviewPageActive);
+	UTextureRenderTarget2D* PreviewTexture = DraftShowcaseActor->GetPreviewTexture();
+	if (CharacterPreviewImage)
+	{
+		CharacterPreviewImage->SetBrushResourceObject(PreviewTexture);
+	}
+	if (InventoryCharacterPreviewImage)
+	{
+		InventoryCharacterPreviewImage->SetBrushResourceObject(PreviewTexture);
 	}
 }
 
@@ -738,9 +967,9 @@ void UUBFPresentationWidget::BuildPages()
 	UBFPresentation::AddPageLine(HomePlayLayout, CreateText(TEXT("HomePlayHeadline"),
 		TEXT("Tu equipo.\nTu siguiente ronda."), 30, UBFPresentation::TextColor, true), 18.0f);
 	UBFPresentation::AddPageLine(HomePlayLayout, CreateText(TEXT("HomePlayDescription"),
-		TEXT("Escoge Arena o Golem, selecciona combatientes y define el tamaño de cada equipo antes de entrar al mapa."),
+		TEXT("Configura una sala local, decide el modo y formato, y comienza el draft de personajes antes de cargar el mapa."),
 		15, UBFPresentation::MutedTextColor), 24.0f);
-	UButton* HomePlayButton = CreateMenuButton(TEXT("HomePlayButton"), TEXT("ABRIR CENTRO DE JUEGO  →"));
+	UButton* HomePlayButton = CreateMenuButton(TEXT("HomePlayButton"), TEXT("CREAR SALA LOCAL  →"));
 	HomePlayButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnPlayClicked);
 	if (UVerticalBoxSlot* HomePlaySlot = HomePlayLayout->AddChildToVerticalBox(HomePlayButton))
 	{
@@ -771,14 +1000,50 @@ void UUBFPresentationWidget::BuildPages()
 	UBFPresentation::AddPageLine(PlayPage, CreateText(TEXT("ServerList"),
 		TEXT("ENTRENAMIENTO LOCAL  ·  HASTA 10 LUCHADORES  ·  5 POR EQUIPO"),
 		12, UBFPresentation::GoldColor, true), 9.0f);
-	UBorder* RoomPreviewPanel = CreatePanel(TEXT("RoomPreviewPanel"), UBFPresentation::CardPanelColor);
-	RoomPreviewPanel->SetPadding(FMargin(16.0f, 13.0f));
-	RoomPreviewText = CreateText(TEXT("RoomPreview"), TEXT("EQUIPOS  //  ESPERANDO CONFIGURACIÓN"),
-		13, UBFPresentation::TextColor, true);
-	RoomPreviewPanel->SetContent(RoomPreviewText);
-	if (UVerticalBoxSlot* RoomPreviewSlot = PlayPage->AddChildToVerticalBox(RoomPreviewPanel))
+	USizeBox* RoomPreviewSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RoomPreviewSize"));
+	RoomPreviewSize->SetHeightOverride(122.0f);
+	UBorder* RoomPreviewPanel = CreatePanel(TEXT("RoomPreviewPanel"), FLinearColor(0.012f, 0.020f, 0.033f, 0.72f));
+	UBFPresentation::ApplyUIFrame(RoomPreviewPanel, UIFrameGoldTexture);
+	RoomPreviewPanel->SetPadding(FMargin(12.0f, 9.0f));
+	UVerticalBox* RoomPreviewLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("RoomPreviewLayout"));
+	RoomPreviewPanel->SetContent(RoomPreviewLayout);
+	RoomPreviewText = CreateText(TEXT("RoomPreview"), TEXT("SALA LOCAL  //  ARENA  //  1v1"),
+		11, UBFPresentation::GoldColor, true);
+	UBFPresentation::AddPageLine(RoomPreviewLayout, RoomPreviewText, 5.0f);
+	UHorizontalBox* RoomTeamsRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(),
+		TEXT("RoomTeamsRow"));
+	RoomPreviewLayout->AddChildToVerticalBox(RoomTeamsRow);
+	auto MakeRoomTeamCard = [this, RoomTeamsRow](const FName& Name, const FString& Label,
+		const FLinearColor& Color, bool bRedTeam, TObjectPtr<UTextBlock>& OutRoster)
 	{
-		RoomPreviewSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 15.0f));
+		UBorder* TeamPanel = CreatePanel(Name, FLinearColor(bRedTeam ? 0.12f : 0.018f,
+			bRedTeam ? 0.024f : 0.065f, bRedTeam ? 0.032f : 0.12f, 0.70f));
+		UBFPresentation::ApplyUIFrame(TeamPanel, bRedTeam ? UIFrameRedTexture : UIFrameBlueTexture);
+		TeamPanel->SetPadding(FMargin(12.0f, 7.0f));
+		UVerticalBox* TeamLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("Layout"))));
+		TeamPanel->SetContent(TeamLayout);
+		UBFPresentation::AddPageLine(TeamLayout, CreateText(FName(*(Name.ToString() + TEXT("Title"))),
+			Label, 11, Color, true), 2.0f);
+		OutRoster = CreateText(FName(*(Name.ToString() + TEXT("Roster"))), TEXT(""), 11,
+			UBFPresentation::TextColor, false);
+		OutRoster->SetAutoWrapText(true);
+		TeamLayout->AddChildToVerticalBox(OutRoster);
+		if (UHorizontalBoxSlot* TeamSlot = RoomTeamsRow->AddChildToHorizontalBox(TeamPanel))
+		{
+			TeamSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			TeamSlot->SetPadding(FMargin(bRedTeam ? 0.0f : 6.0f, 0.0f, bRedTeam ? 6.0f : 0.0f, 0.0f));
+		}
+	};
+	MakeRoomTeamCard(TEXT("RoomRedTeamPanel"), TEXT("TEAM A  ·  ROJO"),
+		FLinearColor(1.0f, 0.30f, 0.35f, 1.0f), true, RoomRedRosterText);
+	MakeRoomTeamCard(TEXT("RoomBlueTeamPanel"), TEXT("TEAM B  ·  AZUL"),
+		FLinearColor(0.28f, 0.78f, 0.95f, 1.0f), false, RoomBlueRosterText);
+	RoomPreviewSize->SetContent(RoomPreviewPanel);
+	if (UVerticalBoxSlot* RoomPreviewSlot = PlayPage->AddChildToVerticalBox(RoomPreviewSize))
+	{
+		RoomPreviewSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
 	}
 
 	auto CreateCycleButton = [this](UHorizontalBox* Row, const FName& Name, const FString& Label)
@@ -911,40 +1176,46 @@ void UUBFPresentationWidget::BuildPages()
 	}
 	UHorizontalBox* CharacterShowcaseRow = WidgetTree->ConstructWidget<UHorizontalBox>(
 		UHorizontalBox::StaticClass(), TEXT("CharacterShowcaseRow"));
-	USizeBox* CharacterArtSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
-		TEXT("CharacterArtSize"));
-	CharacterArtSize->SetWidthOverride(278.0f);
-	CharacterArtSize->SetHeightOverride(274.0f);
-	UBorder* CharacterArtCard = CreatePanel(TEXT("CharacterArtCard"), FLinearColor(0.06f, 0.022f, 0.038f, 0.84f));
-	CharacterArtCard->SetPadding(FMargin(20.0f, 22.0f));
-	UVerticalBox* CharacterArtLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
-		TEXT("CharacterArtLayout"));
-	CharacterArtCard->SetContent(CharacterArtLayout);
-	UBFPresentation::AddPageLine(CharacterArtLayout, CreateText(TEXT("CharacterCardEyebrow"),
-		TEXT("COMBATIENTE SELECCIONADO"), 10, UBFPresentation::GoldColor, true), 18.0f);
-	CharacterPortraitMarkText = CreateText(TEXT("CharacterPortraitMark"), TEXT("WIZ"),
-		62, UBFPresentation::TextColor, true);
-	CharacterPortraitMarkText->SetJustification(ETextJustify::Center);
-	UBFPresentation::AddPageLine(CharacterArtLayout, CharacterPortraitMarkText, 14.0f);
-	CharacterPortraitRoleText = CreateText(TEXT("CharacterPortraitRole"), TEXT("ESTILO DE COMBATE"),
-		12, UBFPresentation::GoldColor, true);
-	CharacterPortraitRoleText->SetJustification(ETextJustify::Center);
-	UBFPresentation::AddPageLine(CharacterArtLayout, CharacterPortraitRoleText, 0.0f);
-	CharacterArtSize->SetContent(CharacterArtCard);
-	if (UHorizontalBoxSlot* ArtSlot = CharacterShowcaseRow->AddChildToHorizontalBox(CharacterArtSize))
-	{
-		ArtSlot->SetPadding(FMargin(0.0f, 0.0f, 18.0f, 0.0f));
-		ArtSlot->SetVerticalAlignment(VAlign_Fill);
-	}
-	CharacterDetailsText = CreateText(TEXT("CharacterDetails"), TEXT(""),
-		14, UBFPresentation::TextColor);
-	UBorder* CharacterDetailsCard = CreatePanel(TEXT("CharacterDetailsCard"), UBFPresentation::CardPanelColor);
-	CharacterDetailsCard->SetPadding(FMargin(22.0f, 19.0f));
-	CharacterDetailsCard->SetContent(CharacterDetailsText);
+	UBorder* CharacterDetailsCard = CreatePanel(TEXT("CharacterDetailsCard"), FLinearColor(0.018f, 0.027f, 0.043f, 0.89f));
+	UBFPresentation::ApplyUIFrame(CharacterDetailsCard, UIFrameGoldTexture);
+	CharacterDetailsCard->SetPadding(FMargin(18.0f, 15.0f));
 	if (UHorizontalBoxSlot* DetailsSlot = CharacterShowcaseRow->AddChildToHorizontalBox(CharacterDetailsCard))
 	{
 		DetailsSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		DetailsSlot->SetPadding(FMargin(0.0f, 0.0f, 14.0f, 0.0f));
 		DetailsSlot->SetVerticalAlignment(VAlign_Fill);
+	}
+	UVerticalBox* CharacterDetailsLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("CharacterDetailsLayout"));
+	CharacterDetailsCard->SetContent(CharacterDetailsLayout);
+	CharacterPortraitRoleText = CreateText(TEXT("CharacterPortraitRole"), TEXT("ESTILO DE COMBATE"),
+		11, UBFPresentation::GoldColor, true);
+	UBFPresentation::AddPageLine(CharacterDetailsLayout, CharacterPortraitRoleText, 7.0f);
+	UScrollBox* CharacterInfoScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(),
+		TEXT("CharacterInfoScroll"));
+	if (UVerticalBoxSlot* CharacterScrollSlot = CharacterDetailsLayout->AddChildToVerticalBox(CharacterInfoScroll))
+	{
+		CharacterScrollSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
+	CharacterDetailsText = CreateText(TEXT("CharacterDetails"), TEXT(""), 13, UBFPresentation::TextColor);
+	CharacterDetailsText->SetAutoWrapText(true);
+	CharacterDetailsText->SetLineHeightPercentage(1.12f);
+	CharacterInfoScroll->AddChild(CharacterDetailsText);
+	USizeBox* CharacterArtSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
+		TEXT("CharacterArtSize"));
+	CharacterArtSize->SetMinDesiredWidth(400.0f);
+	CharacterArtSize->SetMinDesiredHeight(400.0f);
+	UBorder* CharacterArtCard = CreatePanel(TEXT("CharacterArtCard"), FLinearColor(0.008f, 0.015f, 0.027f, 0.56f));
+	UBFPresentation::ApplyUIFrame(CharacterArtCard, UIFrameRedTexture);
+	CharacterArtCard->SetPadding(FMargin(8.0f));
+	CharacterPreviewImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("CharacterPreviewImage"));
+	CharacterPreviewImage->SetColorAndOpacity(FLinearColor::White);
+	CharacterArtCard->SetContent(CharacterPreviewImage);
+	CharacterArtSize->SetContent(CharacterArtCard);
+	if (UHorizontalBoxSlot* ArtSlot = CharacterShowcaseRow->AddChildToHorizontalBox(CharacterArtSize))
+	{
+		ArtSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ArtSlot->SetVerticalAlignment(VAlign_Fill);
 	}
 	if (UVerticalBoxSlot* ShowcaseSlot = CharacterPage->AddChildToVerticalBox(CharacterShowcaseRow))
 	{
@@ -952,8 +1223,8 @@ void UUBFPresentationWidget::BuildPages()
 		ShowcaseSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
 	}
 	UBFPresentation::AddPageLine(CharacterPage, CreateText(TEXT("CharacterHint"),
-		TEXT("Q  HABILIDAD PRINCIPAL     E  HABILIDAD SECUNDARIA     F  DEFINITIVA\nPuedes cambiar las asignaciones en Ajustes  /  Controles."),
-		12, UBFPresentation::MutedTextColor), 10.0f);
+		TEXT("Q PRINCIPAL   ·   E SECUNDARIA   ·   F DEFINITIVA   ·   Cambia las teclas en Ajustes / Controles."),
+		11, UBFPresentation::MutedTextColor), 4.0f);
 	UButton* ContinueCharacterButton = CreateMenuButton(TEXT("ContinueCharacterButton"), TEXT("CONTINUAR  ·  CONFIGURAR SALA"));
 	ContinueCharacterButton->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnContinueCharacterClicked);
 	if (UVerticalBoxSlot* CharacterContinueSlot = CharacterPage->AddChildToVerticalBox(ContinueCharacterButton))
@@ -964,18 +1235,131 @@ void UUBFPresentationWidget::BuildPages()
 	RefreshCharacterSelection();
 
 	UVerticalBox* InventoryPage = CreatePage(TEXT("InventoryPage"), TEXT("INVENTARIO"),
-		TEXT("TU COLECCIÓN  /  EQUIPO Y RECOMPENSAS"));
-	InventorySummaryText = CreateText(TEXT("InventorySummary"), TEXT(""), 13, UBFPresentation::GoldColor, true);
-	UBFPresentation::AddPageLine(InventoryPage, InventorySummaryText, 12.0f);
-	InventoryItemsGrid = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass(), TEXT("InventoryItemsGrid"));
-	InventoryItemsGrid->SetInnerSlotPadding(FVector2D(10.0f, 10.0f));
-	if (UVerticalBoxSlot* InventoryGridSlot = InventoryPage->AddChildToVerticalBox(InventoryItemsGrid))
+		TEXT("TU COLECCIÓN  /  PERSONAJE, EQUIPO Y OBJETOS"));
+	UHorizontalBox* InventoryLayout = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(),
+		TEXT("InventoryLayout"));
+	if (UVerticalBoxSlot* InventoryLayoutSlot = InventoryPage->AddChildToVerticalBox(InventoryLayout))
 	{
-		InventoryGridSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		InventoryLayoutSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
+	UBorder* InventoryCategoryPanel = CreatePanel(TEXT("InventoryCategoryPanel"), FLinearColor(0.014f, 0.022f, 0.037f, 0.85f));
+	UBFPresentation::ApplyUIFrame(InventoryCategoryPanel, UIFrameGoldTexture);
+	InventoryCategoryPanel->SetPadding(FMargin(8.0f, 10.0f));
+	if (UHorizontalBoxSlot* CategorySlot = InventoryLayout->AddChildToHorizontalBox(InventoryCategoryPanel))
+	{
+		CategorySlot->SetPadding(FMargin(0.0f, 0.0f, 10.0f, 0.0f));
+		CategorySlot->SetVerticalAlignment(VAlign_Fill);
+	}
+	UVerticalBox* InventoryCategoryList = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("InventoryCategoryList"));
+	InventoryCategoryPanel->SetContent(InventoryCategoryList);
+	InventoryCategoryText = CreateText(TEXT("InventoryCategory"), TEXT("ARMARIO"), 10,
+		UBFPresentation::GoldColor, true);
+	InventoryCategoryText->SetJustification(ETextJustify::Center);
+	UBFPresentation::AddPageLine(InventoryCategoryList, InventoryCategoryText, 8.0f);
+	auto AddInventoryCategory = [this, InventoryCategoryList](const FName& Name, const FString& Label,
+		UTexture2D* Icon) -> UButton*
+	{
+		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
+		FButtonStyle Style;
+		Style.Normal = FSlateColorBrush(FLinearColor(0.016f, 0.026f, 0.042f, 0.58f));
+		Style.Hovered = UBFPresentation::MakeUIFrameBrush(UIFrameGoldTexture);
+		Style.Pressed = FSlateColorBrush(FLinearColor(0.34f, 0.18f, 0.045f, 0.82f));
+		Style.NormalPadding = FMargin(5.0f, 7.0f);
+		Style.PressedPadding = Style.NormalPadding;
+		Button->SetStyle(Style);
+		UVerticalBox* ButtonContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("Content"))));
+		UImage* IconImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+			FName(*(Name.ToString() + TEXT("Icon"))));
+		if (Icon) IconImage->SetBrushFromTexture(Icon, true);
+		USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
+			FName(*(Name.ToString() + TEXT("IconSize"))));
+		IconSize->SetWidthOverride(34.0f);
+		IconSize->SetHeightOverride(34.0f);
+		IconSize->SetContent(IconImage);
+		if (UVerticalBoxSlot* IconSlot = ButtonContent->AddChildToVerticalBox(IconSize))
+		{
+			IconSlot->SetHorizontalAlignment(HAlign_Center);
+			IconSlot->SetPadding(FMargin(0.0f, 1.0f, 0.0f, 4.0f));
+		}
+		UTextBlock* LabelText = CreateText(FName(*(Name.ToString() + TEXT("Label"))), Label, 9,
+			UBFPresentation::TextColor, true);
+		LabelText->SetJustification(ETextJustify::Center);
+		ButtonContent->AddChildToVerticalBox(LabelText);
+		Button->SetContent(ButtonContent);
+		if (UVerticalBoxSlot* ButtonSlot = InventoryCategoryList->AddChildToVerticalBox(Button))
+		{
+			ButtonSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+		}
+		return Button;
+	};
+	AddInventoryCategory(TEXT("InventoryAll"), TEXT("TODO"), UICharacterIconTexture)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnInventoryAllClicked);
+	AddInventoryCategory(TEXT("InventoryArmor"), TEXT("ARMADURA"), UIArmorIconTexture)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnInventoryArmorClicked);
+	AddInventoryCategory(TEXT("InventoryWeapons"), TEXT("ARMAS"), UIWeaponIconTexture)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnInventoryWeaponsClicked);
+	AddInventoryCategory(TEXT("InventoryAccessories"), TEXT("ACCESORIOS"), UIAccessoryIconTexture)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnInventoryAccessoriesClicked);
+	AddInventoryCategory(TEXT("InventoryCharacter"), TEXT("PERSONAJE"), UICharacterIconTexture)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnCharacterClicked);
+	AddInventoryCategory(TEXT("InventoryShop"), TEXT("TIENDA"), UIShopIconTexture)
+		->OnClicked.AddDynamic(this, &UUBFPresentationWidget::OnShopClicked);
+	UBorder* InventoryItemsPanel = CreatePanel(TEXT("InventoryItemsPanel"), FLinearColor(0.012f, 0.020f, 0.033f, 0.68f));
+	UBFPresentation::ApplyUIFrame(InventoryItemsPanel, UIFrameBlueTexture);
+	InventoryItemsPanel->SetPadding(FMargin(13.0f, 12.0f));
+	if (UHorizontalBoxSlot* ItemsPanelSlot = InventoryLayout->AddChildToHorizontalBox(InventoryItemsPanel))
+	{
+		ItemsPanelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		ItemsPanelSlot->SetPadding(FMargin(0.0f, 0.0f, 10.0f, 0.0f));
+		ItemsPanelSlot->SetVerticalAlignment(VAlign_Fill);
+	}
+	UVerticalBox* InventoryItemsLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("InventoryItemsLayout"));
+	InventoryItemsPanel->SetContent(InventoryItemsLayout);
+	InventorySummaryText = CreateText(TEXT("InventorySummary"), TEXT("0 OBJETOS  ·  TODO"),
+		12, UBFPresentation::GoldColor, true);
+	UBFPresentation::AddPageLine(InventoryItemsLayout, InventorySummaryText, 8.0f);
+	UScrollBox* InventoryScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(),
+		TEXT("InventoryScroll"));
+	if (UVerticalBoxSlot* InventoryScrollSlot = InventoryItemsLayout->AddChildToVerticalBox(InventoryScroll))
+	{
+		InventoryScrollSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
+	InventoryItemsGrid = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass(), TEXT("InventoryItemsGrid"));
+	InventoryItemsGrid->SetInnerSlotPadding(FVector2D(7.0f, 7.0f));
+	InventoryScroll->AddChild(InventoryItemsGrid);
+	UBorder* InventoryCharacterPanel = CreatePanel(TEXT("InventoryCharacterPanel"), FLinearColor(0.014f, 0.021f, 0.036f, 0.82f));
+	UBFPresentation::ApplyUIFrame(InventoryCharacterPanel, UIFrameGoldTexture);
+	InventoryCharacterPanel->SetPadding(FMargin(9.0f));
+	if (UHorizontalBoxSlot* CharacterPanelSlot = InventoryLayout->AddChildToHorizontalBox(InventoryCharacterPanel))
+	{
+		CharacterPanelSlot->SetPadding(FMargin(0.0f));
+		CharacterPanelSlot->SetVerticalAlignment(VAlign_Fill);
+	}
+	UVerticalBox* InventoryCharacterLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
+		TEXT("InventoryCharacterLayout"));
+	InventoryCharacterPanel->SetContent(InventoryCharacterLayout);
+	InventoryCharacterNameText = CreateText(TEXT("InventoryCharacterName"), TEXT("PERSONAJE"),
+		13, UBFPresentation::GoldColor, true);
+	InventoryCharacterNameText->SetJustification(ETextJustify::Center);
+	UBFPresentation::AddPageLine(InventoryCharacterLayout, InventoryCharacterNameText, 2.0f);
+	InventoryCharacterInfoText = CreateText(TEXT("InventoryCharacterInfo"), TEXT(""),
+		10, UBFPresentation::MutedTextColor, false);
+	InventoryCharacterInfoText->SetJustification(ETextJustify::Center);
+	UBFPresentation::AddPageLine(InventoryCharacterLayout, InventoryCharacterInfoText, 6.0f);
+	UImage* InventoryCharacterImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+		TEXT("InventoryCharacterImage"));
+	InventoryCharacterImage->SetColorAndOpacity(FLinearColor::White);
+	InventoryCharacterPreviewImage = InventoryCharacterImage;
+	if (UVerticalBoxSlot* CharacterImageSlot = InventoryCharacterLayout->AddChildToVerticalBox(InventoryCharacterImage))
+	{
+		CharacterImageSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	}
 	UBFPresentation::AddPageLine(InventoryPage, CreateText(TEXT("InventoryHint"),
-		TEXT("Los objetos de prueba se guardan en este perfil local."),
-		12, UBFPresentation::MutedTextColor), 0.0f);
+		TEXT("Colección local · los objetos se agrupan por categoría cuando el nombre permite reconocer su tipo."),
+		10, UBFPresentation::MutedTextColor), 0.0f);
 	AddPage(InventoryPage);
 
 	UVerticalBox* ProfilePage = CreatePage(TEXT("ProfilePage"), TEXT("PERFIL"),
@@ -1348,7 +1732,9 @@ void UUBFPresentationWidget::ResetPresentationResources()
 	bMenuStarted = false;
 	bTitleVoiceStarted = false;
 	bInteractiveMenuShown = false;
+	bEarlyStartButtonVisible = false;
 	BackgroundRevealElapsed = 0.0f;
+	EarlyStartButtonElapsed = 0.0f;
 }
 
 void UUBFPresentationWidget::PrepareResources()
@@ -1358,6 +1744,13 @@ void UUBFPresentationWidget::PrepareResources()
 	State = EPresentationState::Preloading;
 	MenuElapsed = 0.0f;
 	RewardToastRemaining = 0.0f;
+	bEarlyStartButtonVisible = false;
+	EarlyStartButtonElapsed = 0.0f;
+	WelcomeRoot->SetRenderOpacity(0.0f);
+	WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
+	ClosedBetaRoot->SetRenderOpacity(0.0f);
+	ClosedBetaRoot->SetVisibility(ESlateVisibility::Collapsed);
+	bShowingClosedBetaNotice = false;
 
 	MenuRoot->SetVisibility(ESlateVisibility::Collapsed);
 	VideoImage->SetVisibility(ESlateVisibility::Collapsed);
@@ -1601,6 +1994,10 @@ void UUBFPresentationWidget::TryStartIntro()
 	State = EPresentationState::Intro;
 	bIntroPlaybackStarted = true;
 	bIntroAudioStarted = false;
+	bEarlyStartButtonVisible = false;
+	EarlyStartButtonElapsed = 0.0f;
+	WelcomeRoot->SetRenderOpacity(0.0f);
+	WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
 	if (!IntroVideoPlayer->Play())
 	{
 		bIntroPlaybackStarted = false;
@@ -1713,6 +2110,8 @@ void UUBFPresentationWidget::EnterInteractiveMenu()
 	MenuRoot->SetVisibility(ESlateVisibility::Collapsed);
 	WelcomeRoot->SetRenderOpacity(0.0f);
 	WelcomeRoot->SetVisibility(ESlateVisibility::Visible);
+	ClosedBetaRoot->SetVisibility(ESlateVisibility::Collapsed);
+	bShowingClosedBetaNotice = false;
 	SetKeyboardFocus();
 	RefreshPlayerData();
 	UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Fase de bienvenida del menú iniciada."));
@@ -1720,28 +2119,65 @@ void UUBFPresentationWidget::EnterInteractiveMenu()
 
 void UUBFPresentationWidget::OnContinueFromWelcomeClicked()
 {
-	if (State != EPresentationState::Menu || !bShowingWelcomeScreen)
+	UE_LOG(UBFPresentation::LogUBFPresentation, Log,
+		TEXT("Entrada solicitada: fase=%u, botón temprano=%s, bienvenida=%s."),
+		static_cast<uint8>(State), bEarlyStartButtonVisible ? TEXT("sí") : TEXT("no"),
+		bShowingWelcomeScreen ? TEXT("sí") : TEXT("no"));
+	// Allow the closed-beta notice to open as soon as the action appears over the intro.
+	if (bEarlyStartButtonVisible && State == EPresentationState::Intro)
+	{
+		BeginMenu();
+		UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Entrada temprana: intro detenida y menú de fondo iniciado."));
+	}
+	if (bEarlyStartButtonVisible && State == EPresentationState::MenuReveal && !bInteractiveMenuShown)
+	{
+		EnterInteractiveMenu();
+	}
+	if (State != EPresentationState::Menu || !bShowingWelcomeScreen || bShowingClosedBetaNotice)
 	{
 		return;
 	}
 
-	bShowingWelcomeScreen = false;
-	WelcomeRoot->SetVisibility(ESlateVisibility::Collapsed);
-	MenuRoot->SetRenderOpacity(0.0f);
-	MenuRoot->SetVisibility(ESlateVisibility::Visible);
-	MenuEntranceElapsed = 0.0f;
-	MenuElapsed = 0.0f;
-	if (UCanvasPanelSlot* LogoSlot = Cast<UCanvasPanelSlot>(LogoImage->Slot))
+	ShowClosedBetaNotice();
+}
+
+void UUBFPresentationWidget::ShowClosedBetaNotice()
+{
+	if (bShowingClosedBetaNotice || !ClosedBetaRoot)
 	{
-		LogoSlot->SetAnchors(FAnchors(0.022f, 0.035f));
-		LogoSlot->SetAlignment(FVector2D::ZeroVector);
-		LogoSlot->SetPosition(FVector2D::ZeroVector);
-		LogoSlot->SetSize(FVector2D(212.0f, 116.0f));
+		return;
 	}
-	LogoImage->SetRenderOpacity(1.0f);
-	LogoImage->SetRenderTransform(FWidgetTransform());
-	SetMenuPage(EMenuPage::Home);
-	UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Transición de bienvenida al hub completada."));
+
+	const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+	const UUBFPlayerSaveGame* Data = PlayerData ? PlayerData->GetPlayerData() : nullptr;
+	const FString PlayerName = Data && !Data->PlayerName.IsEmpty() ? Data->PlayerName : TEXT("JUGADOR");
+	if (ClosedBetaProfileText)
+	{
+		ClosedBetaProfileText->SetText(FText::FromString(FString::Printf(TEXT("PERFIL  //  %s"), *PlayerName.ToUpper())));
+	}
+
+	bShowingClosedBetaNotice = true;
+	ClosedBetaNoticeElapsed = 0.0f;
+	ClosedBetaRoot->SetRenderOpacity(0.0f);
+	ClosedBetaRoot->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, 12.0f), FVector2D(0.985f),
+		FVector2D(0.5f), 0.0f));
+	ClosedBetaRoot->SetVisibility(ESlateVisibility::Visible);
+	SetKeyboardFocus();
+	UE_LOG(UBFPresentation::LogUBFPresentation, Log,
+		TEXT("Acceso al juego bloqueado: beta cerrada. Perfil de Launcher: %s."), *PlayerName);
+}
+
+void UUBFPresentationWidget::OnCloseClosedBetaNoticeClicked()
+{
+	if (!bShowingClosedBetaNotice || !ClosedBetaRoot)
+	{
+		return;
+	}
+	bShowingClosedBetaNotice = false;
+	ClosedBetaRoot->SetVisibility(ESlateVisibility::Collapsed);
+	WelcomeRoot->SetVisibility(ESlateVisibility::Visible);
+	SetKeyboardFocus();
 }
 
 void UUBFPresentationWidget::OnContinueCharacterClicked()
@@ -1804,6 +2240,14 @@ void UUBFPresentationWidget::SetMenuPage(EMenuPage NewPage)
 
 	ActivePage = NewPage;
 	PageSwitcher->SetActiveWidgetIndex(static_cast<int32>(NewPage));
+	if (NewPage == EMenuPage::Character || NewPage == EMenuPage::Inventory)
+	{
+		EnsureMenuCharacterShowcase();
+	}
+	else if (IsValid(DraftShowcaseActor))
+	{
+		DraftShowcaseActor->SetShowcaseActive(false);
+	}
 	PageEntranceElapsed = 0.0f;
 	PageSwitcher->SetRenderOpacity(0.0f);
 	PageSwitcher->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, 15.0f), FVector2D(0.985f),
@@ -1835,6 +2279,12 @@ void UUBFPresentationWidget::SetMenuPage(EMenuPage NewPage)
 			CharacterPortraitMarkText->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, 24.0f),
 				FVector2D(0.82f), FVector2D::ZeroVector, 0.0f));
 		}
+		if (CharacterPreviewImage)
+		{
+			CharacterPreviewImage->SetRenderOpacity(0.0f);
+			CharacterPreviewImage->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, 18.0f),
+				FVector2D(0.94f), FVector2D::ZeroVector, 0.0f));
+		}
 		if (CharacterDetailsText)
 		{
 			CharacterDetailsText->SetRenderOpacity(0.0f);
@@ -1853,6 +2303,16 @@ void UUBFPresentationWidget::RefreshPlayerData()
 	if (!Data)
 	{
 		return;
+	}
+	if (WelcomeUserNameText)
+	{
+		WelcomeUserNameText->SetText(FText::FromString(Data->PlayerName.IsEmpty()
+			? TEXT("JUGADOR") : Data->PlayerName.ToUpper()));
+	}
+	if (ClosedBetaProfileText)
+	{
+		ClosedBetaProfileText->SetText(FText::FromString(FString::Printf(TEXT("PERFIL  //  %s"),
+			Data->PlayerName.IsEmpty() ? TEXT("JUGADOR") : *Data->PlayerName.ToUpper())));
 	}
 	const int32 DisplayGold = bCurrencyRewardAnimating ? CurrencyDisplayedGold : Data->Gold;
 	const int32 DisplayEventPoints = bCurrencyRewardAnimating ? CurrencyDisplayedEventPoints : Data->EventPoints;
@@ -1878,51 +2338,122 @@ void UUBFPresentationWidget::RefreshPlayerData()
 	}
 	if (InventorySummaryText)
 	{
-		const FString Items = Data->InventoryItems.IsEmpty()
-			? TEXT("No tienes objetos todavía. Canjea un código o visita la tienda.")
-			: FString::Join(Data->InventoryItems, TEXT("\n• "));
-		InventorySummaryText->SetText(FText::FromString(FString::Printf(TEXT("OBJETOS LOCALES (%d)\n• %s"),
-			Data->InventoryItems.Num(), *Items)));
+		InventorySummaryText->SetText(FText::FromString(TEXT("COLECCIÓN")));
+	}
+	if (InventoryCategoryText)
+	{
+		InventoryCategoryText->SetText(FText::FromString(SelectedInventoryCategory == EInventoryCategory::All
+			? TEXT("ARMARIO") : TEXT("FILTRAR")));
+	}
+	if (InventoryCharacterNameText || InventoryCharacterInfoText)
+	{
+		const UUBFCharacterCatalogSubsystem* Catalog = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UUBFCharacterCatalogSubsystem>() : nullptr;
+		const UUBFCharacterDefinition* Character = Catalog && CharacterIds.IsValidIndex(SelectedCharacterIndex)
+			? Catalog->FindCharacter(CharacterIds[SelectedCharacterIndex]) : nullptr;
+		if (Character)
+		{
+			if (InventoryCharacterNameText) InventoryCharacterNameText->SetText(Character->DisplayName);
+			if (InventoryCharacterInfoText)
+			{
+				InventoryCharacterInfoText->SetText(FText::FromString(FString::Printf(TEXT("%s\n%s"),
+					*Character->CombatStyle.ToString(), *Character->ShortDescription.ToString())));
+			}
+		}
 	}
 	if (InventoryItemsGrid)
 	{
-		const FString CurrentInventoryKey = FString::Join(Data->InventoryItems, TEXT("\n"));
+		const FString CurrentInventoryKey = FString::Printf(TEXT("%d\n%s"),
+			static_cast<int32>(SelectedInventoryCategory), *FString::Join(Data->InventoryItems, TEXT("\n")));
 		if (CurrentInventoryKey != LastRenderedInventoryKey)
 		{
 			LastRenderedInventoryKey = CurrentInventoryKey;
 			const FString BuildPrefix = FString::Printf(TEXT("InventoryBuild_%u_"), ++InventoryWidgetBuildSerial);
 			InventoryItemsGrid->ClearChildren();
-			if (Data->InventoryItems.IsEmpty())
+			TArray<int32> VisibleItemIndices;
+			auto GetRecognizedCategory = [](const FString& ItemName)
+			{
+				const FString Lower = ItemName.ToLower();
+				if (Lower.Contains(TEXT("armor")) || Lower.Contains(TEXT("armadura")) || Lower.Contains(TEXT("helmet"))
+					|| Lower.Contains(TEXT("casco")) || Lower.Contains(TEXT("guante")) || Lower.Contains(TEXT("bota")))
+				{
+					return EInventoryCategory::Armor;
+				}
+				if (Lower.Contains(TEXT("weapon")) || Lower.Contains(TEXT("arma")) || Lower.Contains(TEXT("sword"))
+					|| Lower.Contains(TEXT("espada")) || Lower.Contains(TEXT("lanza")) || Lower.Contains(TEXT("hacha")))
+				{
+					return EInventoryCategory::Weapons;
+				}
+				if (Lower.Contains(TEXT("ring")) || Lower.Contains(TEXT("necklace")) || Lower.Contains(TEXT("accessory"))
+					|| Lower.Contains(TEXT("anillo")) || Lower.Contains(TEXT("collar")) || Lower.Contains(TEXT("amuleto")))
+				{
+					return EInventoryCategory::Accessories;
+				}
+				return EInventoryCategory::All;
+			};
+			for (int32 ItemIndex = 0; ItemIndex < Data->InventoryItems.Num(); ++ItemIndex)
+			{
+				const EInventoryCategory ItemCategory = GetRecognizedCategory(Data->InventoryItems[ItemIndex]);
+				if (SelectedInventoryCategory == EInventoryCategory::All || ItemCategory == SelectedInventoryCategory)
+				{
+					VisibleItemIndices.Add(ItemIndex);
+				}
+			}
+			static const TCHAR* CategoryLabels[] = { TEXT("TODO"), TEXT("ARMADURA"), TEXT("ARMAS"), TEXT("ACCESORIOS") };
+			InventorySummaryText->SetText(FText::FromString(FString::Printf(TEXT("%d OBJETOS  ·  %s"),
+				VisibleItemIndices.Num(), CategoryLabels[static_cast<int32>(SelectedInventoryCategory)])));
+			if (VisibleItemIndices.IsEmpty())
 			{
 				UBorder* EmptyCard = CreatePanel(FName(*(BuildPrefix + TEXT("EmptyCard"))), UBFPresentation::CardPanelColor);
-				EmptyCard->SetPadding(FMargin(16.0f, 13.0f));
+				UBFPresentation::ApplyUIFrame(EmptyCard, UIFrameGoldTexture);
+				EmptyCard->SetPadding(FMargin(18.0f, 17.0f));
 				UVerticalBox* EmptyLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
 					FName(*(BuildPrefix + TEXT("EmptyLayout"))));
 				EmptyCard->SetContent(EmptyLayout);
 				UBFPresentation::AddPageLine(EmptyLayout, CreateText(FName(*(BuildPrefix + TEXT("EmptyTitle"))),
-					TEXT("TU ARMARIO ESTÁ LISTO"), 15, UBFPresentation::GoldColor, true), 5.0f);
+					Data->InventoryItems.IsEmpty() ? TEXT("TU ARMARIO ESTÁ LISTO") : TEXT("NO HAY OBJETOS EN ESTA CATEGORÍA"),
+					14, UBFPresentation::GoldColor, true), 5.0f);
 				UBFPresentation::AddPageLine(EmptyLayout, CreateText(FName(*(BuildPrefix + TEXT("EmptyDescription"))),
-					TEXT("Los objetos que desbloquees aparecerán aquí."), 12, UBFPresentation::MutedTextColor), 0.0f);
+					Data->InventoryItems.IsEmpty()
+						? TEXT("Los objetos que desbloquees aparecerán aquí.")
+						: TEXT("Los nombres guardados no indican con seguridad si son armadura, arma o accesorio; revisa TODO o la tienda."),
+					11, UBFPresentation::MutedTextColor), 0.0f);
 				InventoryItemsGrid->AddChildToWrapBox(EmptyCard);
 			}
 			else
 			{
-				for (int32 ItemIndex = 0; ItemIndex < Data->InventoryItems.Num(); ++ItemIndex)
+				for (const int32 ItemIndex : VisibleItemIndices)
 				{
 					const FString Suffix = FString::FromInt(ItemIndex);
 					USizeBox* ItemSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(),
 						FName(*(BuildPrefix + TEXT("Size_") + Suffix)));
-					ItemSize->SetWidthOverride(245.0f);
-					ItemSize->SetHeightOverride(112.0f);
+					ItemSize->SetWidthOverride(158.0f);
+					ItemSize->SetHeightOverride(138.0f);
 					UBorder* ItemCard = CreatePanel(FName(*(BuildPrefix + TEXT("Card_") + Suffix)), UBFPresentation::CardPanelColor);
-					ItemCard->SetPadding(FMargin(15.0f, 12.0f));
+					UBFPresentation::ApplyUIFrame(ItemCard, UIFrameGoldTexture);
+					ItemCard->SetPadding(FMargin(9.0f, 8.0f));
 					UVerticalBox* ItemLayout = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),
 						FName(*(BuildPrefix + TEXT("Layout_") + Suffix)));
 					ItemCard->SetContent(ItemLayout);
+					const EInventoryCategory ItemCategory = GetRecognizedCategory(Data->InventoryItems[ItemIndex]);
+					UTexture2D* ItemIcon = ItemCategory == EInventoryCategory::Armor ? UIArmorIconTexture
+						: (ItemCategory == EInventoryCategory::Weapons ? UIWeaponIconTexture
+							: (ItemCategory == EInventoryCategory::Accessories ? UIAccessoryIconTexture : UICharacterIconTexture));
+					UImage* ItemIconImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+						FName(*(BuildPrefix + TEXT("Icon_") + Suffix)));
+					if (ItemIcon) ItemIconImage->SetBrushFromTexture(ItemIcon, true);
+					if (UVerticalBoxSlot* IconSlot = ItemLayout->AddChildToVerticalBox(ItemIconImage))
+					{
+						IconSlot->SetHorizontalAlignment(HAlign_Center);
+						IconSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 5.0f));
+					}
 					UBFPresentation::AddPageLine(ItemLayout, CreateText(FName(*(BuildPrefix + TEXT("Name_") + Suffix)),
-						Data->InventoryItems[ItemIndex], 14, UBFPresentation::TextColor, true), 7.0f);
+						Data->InventoryItems[ItemIndex], 11, UBFPresentation::TextColor, true), 5.0f);
 					UBFPresentation::AddPageLine(ItemLayout, CreateText(FName(*(BuildPrefix + TEXT("Tag_") + Suffix)),
-						TEXT("OBJETO GUARDADO  //  PERFIL LOCAL"), 10, UBFPresentation::MutedTextColor, true), 0.0f);
+						ItemCategory == EInventoryCategory::All ? TEXT("OBJETO LOCAL")
+							: (ItemCategory == EInventoryCategory::Armor ? TEXT("ARMADURA")
+								: (ItemCategory == EInventoryCategory::Weapons ? TEXT("ARMA") : TEXT("ACCESORIO"))),
+						9, UBFPresentation::MutedTextColor, true), 0.0f);
 					ItemSize->SetContent(ItemCard);
 					InventoryItemsGrid->AddChildToWrapBox(ItemSize);
 				}
@@ -1985,7 +2516,7 @@ void UUBFPresentationWidget::StartCurrencyRewardAnimation(int32 PreviousGold, in
 
 void UUBFPresentationWidget::OnPlayClicked()
 {
-	SetMenuPage(EMenuPage::Character);
+	SetMenuPage(EMenuPage::Play);
 }
 
 void UUBFPresentationWidget::OnCharacterClicked()
@@ -1995,7 +2526,40 @@ void UUBFPresentationWidget::OnCharacterClicked()
 
 void UUBFPresentationWidget::OnInventoryClicked()
 {
+	SelectedInventoryCategory = EInventoryCategory::All;
+	LastRenderedInventoryKey.Reset();
 	SetMenuPage(EMenuPage::Inventory);
+}
+
+void UUBFPresentationWidget::OnInventoryAllClicked()
+{
+	SetInventoryCategory(EInventoryCategory::All);
+}
+
+void UUBFPresentationWidget::OnInventoryArmorClicked()
+{
+	SetInventoryCategory(EInventoryCategory::Armor);
+}
+
+void UUBFPresentationWidget::OnInventoryWeaponsClicked()
+{
+	SetInventoryCategory(EInventoryCategory::Weapons);
+}
+
+void UUBFPresentationWidget::OnInventoryAccessoriesClicked()
+{
+	SetInventoryCategory(EInventoryCategory::Accessories);
+}
+
+void UUBFPresentationWidget::SetInventoryCategory(EInventoryCategory Category)
+{
+	if (SelectedInventoryCategory == Category)
+	{
+		return;
+	}
+	SelectedInventoryCategory = Category;
+	LastRenderedInventoryKey.Reset();
+	RefreshPlayerData();
 }
 
 void UUBFPresentationWidget::OnProfileClicked()
@@ -2379,6 +2943,10 @@ void UUBFPresentationWidget::RefreshCharacterDraft()
 	{
 		return;
 	}
+	if (DraftShowcaseActor)
+	{
+		DraftShowcaseActor->SetShowcaseActive(true);
+	}
 
 	DraftCharacterNameText->SetText(Definition->DisplayName);
 	if (DraftCharacterRoleText)
@@ -2392,21 +2960,12 @@ void UUBFPresentationWidget::RefreshCharacterDraft()
 		{
 			return FString::Printf(TEXT("%s  ·  NO DISPONIBLE"), InputName);
 		}
-		const TCHAR* EffectText = TEXT("Impacto de combate");
-		switch (Ability->Effect)
-		{
-		case EUBFAbilityEffect::ForwardArea: EffectText = TEXT("Golpea un área frente al personaje"); break;
-		case EUBFAbilityEffect::ForwardLine: EffectText = TEXT("Ataca en una línea frontal"); break;
-		case EUBFAbilityEffect::SelfPulse: EffectText = TEXT("Emite un pulso alrededor del personaje"); break;
-		case EUBFAbilityEffect::PullWave: EffectText = TEXT("Una onda atrae al rival"); break;
-		case EUBFAbilityEffect::PushWave: EffectText = TEXT("Una onda empuja al rival"); break;
-		case EUBFAbilityEffect::DashStrike: EffectText = TEXT("Avanza y golpea al rival"); break;
-		case EUBFAbilityEffect::CounterStance: EffectText = TEXT("Adopta una postura de contraataque"); break;
-		default: break;
-		}
-		return FString::Printf(TEXT("%s\n%s\nDaño %.0f  ·  alcance %.0f  ·  gauge %.0f%%  ·  recarga %.1fs"),
-			*Ability->DisplayName.ToString(), EffectText, Ability->Damage, Ability->Range,
-			Ability->GaugeCost, Ability->Cooldown);
+		const FString Description = Ability->DetailedDescription.IsEmpty()
+			? FString::Printf(TEXT("Inflige %.0f de daño base con un alcance de %.0f unidades. Administra el gauge y úsala cuando su efecto corresponda a la distancia y apertura disponibles."),
+				Ability->Damage, Ability->Range)
+			: Ability->DetailedDescription.ToString();
+		return FString::Printf(TEXT("%s  ·  %s\n%s"), InputName,
+			*Ability->DisplayName.ToString(), *Description);
 	};
 	if (DraftPrimarySkillText)
 	{
@@ -2545,6 +3104,7 @@ void UUBFPresentationWidget::OnPreviousCharacterClicked()
 		PlayerData->SetSelectedCharacterId(CharacterIds[SelectedCharacterIndex]);
 	}
 	RefreshCharacterSelection();
+	RefreshPlayerData();
 }
 
 void UUBFPresentationWidget::OnNextCharacterClicked()
@@ -2557,6 +3117,7 @@ void UUBFPresentationWidget::OnNextCharacterClicked()
 		PlayerData->SetSelectedCharacterId(CharacterIds[SelectedCharacterIndex]);
 	}
 	RefreshCharacterSelection();
+	RefreshPlayerData();
 }
 
 void UUBFPresentationWidget::RefreshCharacterSelection()
@@ -2587,6 +3148,13 @@ void UUBFPresentationWidget::RefreshCharacterSelection()
 				FVector2D(0.92f), FVector2D::ZeroVector, 0.0f));
 		}
 	}
+	if (CharacterPreviewImage && ActivePage == EMenuPage::Character)
+	{
+		CharacterEntryElapsed = 0.0f;
+		CharacterPreviewImage->SetRenderOpacity(0.0f);
+		CharacterPreviewImage->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, 18.0f),
+			FVector2D(0.94f), FVector2D::ZeroVector, 0.0f));
+	}
 	if (CharacterPortraitMarkText)
 	{
 		CharacterPortraitMarkText->SetText(FText::FromString(Definition->CharacterID.ToString().ToUpper().Left(3)));
@@ -2603,25 +3171,46 @@ void UUBFPresentationWidget::RefreshCharacterSelection()
 	}
 	if (CharacterDetailsText)
 	{
-		const FString PrimaryName = Definition->PrimarySkill
-			? Definition->PrimarySkill->DisplayName.ToString() : TEXT("—");
-		const FString SecondaryName = Definition->SecondarySkill
-			? Definition->SecondarySkill->DisplayName.ToString() : TEXT("—");
-		const FString UltimateName = Definition->Ultimate
-			? Definition->Ultimate->DisplayName.ToString() : TEXT("—");
-		const float PrimaryCost = Definition->PrimarySkill ? Definition->PrimarySkill->GaugeCost : 0.0f;
-		const float SecondaryCost = Definition->SecondarySkill ? Definition->SecondarySkill->GaugeCost : 0.0f;
-		const float UltimateCost = Definition->Ultimate ? Definition->Ultimate->GaugeCost : 0.0f;
-		const FString Details = FString::Printf(TEXT("%s\n\nESTILO\n%s\n\nPASIVA · %s\n%s\n\nQ · %s  /  %.0f GAUGE\nE · %s  /  %.0f GAUGE\nF · %s  /  %.0f GAUGE"),
-			*Definition->ShortDescription.ToString(), *Definition->CombatStyle.ToString(),
-			*Definition->PassiveName.ToString(), *Definition->PassiveDescription.ToString(),
-			*PrimaryName, PrimaryCost, *SecondaryName, SecondaryCost, *UltimateName, UltimateCost);
+		auto DescribeAbility = [](const TCHAR* AbilitySlotLabel, const UUBFAbilityDefinition* Ability)
+		{
+			if (!Ability)
+			{
+				return FString::Printf(TEXT("%s  ·  Habilidad no disponible."), AbilitySlotLabel);
+			}
+			const FString Detail = Ability->DetailedDescription.IsEmpty()
+				? FString::Printf(TEXT("Inflige %.0f de daño base a hasta %.0f unidades. Administra el gauge y busca una apertura segura antes de activarla."),
+					Ability->Damage, Ability->Range)
+				: Ability->DetailedDescription.ToString();
+			return FString::Printf(TEXT("%s  ·  %s\n%s"), AbilitySlotLabel, *Ability->DisplayName.ToString(), *Detail);
+		};
+		const FString PrimaryDetails = DescribeAbility(TEXT("Q · PRIMARIA"), Definition->PrimarySkill);
+		const FString SecondaryDetails = DescribeAbility(TEXT("E · SECUNDARIA"), Definition->SecondarySkill);
+		const FString UltimateDetails = DescribeAbility(TEXT("F · DEFINITIVA"), Definition->Ultimate);
+		const FString Overview = FString::Printf(TEXT("%s\nVIDA %.0f  ·  MOVIMIENTO %.0f  ·  BÁSICO %.0f"),
+			*Definition->ShortDescription.ToString(), Definition->BaseStats.MaximumHealth,
+			Definition->BaseStats.MaxWalkSpeed, Definition->BaseStats.BasicAttackDamage);
+		const FString Details = FString::Printf(TEXT("%s\n\nPASIVA  ·  %s\n%s\n\n%s\n\n%s\n\n%s"),
+			*Overview, *Definition->PassiveName.ToString(),
+			*Definition->PassiveDescription.ToString(), *PrimaryDetails, *SecondaryDetails, *UltimateDetails);
 		CharacterDetailsText->SetText(FText::FromString(Details));
 		if (ActivePage == EMenuPage::Character)
 		{
 			CharacterDetailsText->SetRenderOpacity(0.0f);
 			CharacterDetailsText->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, 18.0f),
 				FVector2D(0.985f), FVector2D::ZeroVector, 0.0f));
+		}
+	}
+	if (IsValid(DraftShowcaseActor))
+	{
+		DraftShowcaseActor->SetSoloPreviewMode(true);
+		DraftShowcaseActor->SetShowcaseActive(ActivePage == EMenuPage::Character || ActivePage == EMenuPage::Inventory);
+		if (CharacterPreviewImage)
+		{
+			CharacterPreviewImage->SetBrushResourceObject(DraftShowcaseActor->GetPreviewTexture());
+		}
+		if (InventoryCharacterPreviewImage)
+		{
+			InventoryCharacterPreviewImage->SetBrushResourceObject(DraftShowcaseActor->GetPreviewTexture());
 		}
 	}
 	RefreshCharacterDraft();
@@ -2718,9 +3307,23 @@ void UUBFPresentationWidget::RefreshMatchSetupText()
 		const int32 Team0Bots = SelectedBotFillModeIndex == 2 ? FMath::Max(0, SelectedTeamSize - 1) : 0;
 		const int32 Team1Bots = SelectedBotFillModeIndex == 1 || SelectedBotFillModeIndex == 2 ? SelectedTeamSize : 0;
 		const FString ModeName = SelectedGameModeIndex == 1 ? TEXT("GOLEM") : TEXT("COMBATE");
-		RoomPreviewText->SetText(FText::FromString(FString::Printf(
-			TEXT("SALA LOCAL  //  %s  //  %dv%d\nTEAM A  ·  ROJO   ·   TÚ + %d IA\nTEAM B  ·  AZUL   ·   %d IA\nSIN CONEXIÓN EN LÍNEA  ·  TODO SE JUEGA EN ESTE EQUIPO"),
-			*ModeName, SelectedTeamSize, SelectedTeamSize, Team0Bots, Team1Bots)));
+		RoomPreviewText->SetText(FText::FromString(FString::Printf(TEXT("SALA LOCAL  //  %s  //  %dv%d"),
+			*ModeName, SelectedTeamSize, SelectedTeamSize)));
+		const UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
+		const UUBFPlayerSaveGame* Data = PlayerData ? PlayerData->GetPlayerData() : nullptr;
+		const FString PlayerName = Data ? Data->PlayerName : TEXT("JUGADOR LOCAL");
+		if (RoomRedRosterText)
+		{
+			RoomRedRosterText->SetText(FText::FromString(FString::Printf(TEXT("%s  ·  TÚ\n%d IA aliada%s"),
+				*PlayerName, Team0Bots, Team0Bots == 1 ? TEXT("") : TEXT("s"))));
+		}
+		if (RoomBlueRosterText)
+		{
+			RoomBlueRosterText->SetText(FText::FromString(Team1Bots > 0
+				? FString::Printf(TEXT("RIVAL LOCAL\n%d IA enemiga%s"), Team1Bots, Team1Bots == 1 ? TEXT("") : TEXT("s"))
+				: TEXT("VACÍO\nSin bots rivales")));
+		}
 	}
 }
 
@@ -2737,6 +3340,15 @@ void UUBFPresentationWidget::OnExitClicked()
 void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	if (bShowingClosedBetaNotice && ClosedBetaRoot)
+	{
+		ClosedBetaNoticeElapsed += InDeltaTime;
+		const float Reveal = FMath::Clamp(ClosedBetaNoticeElapsed / 0.24f, 0.0f, 1.0f);
+		const float Ease = 1.0f - FMath::Square(1.0f - Reveal);
+		ClosedBetaRoot->SetRenderOpacity(Ease);
+		ClosedBetaRoot->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, FMath::Lerp(12.0f, 0.0f, Ease)),
+			FVector2D(FMath::Lerp(0.975f, 1.0f, Ease)), FVector2D(0.5f), 0.0f));
+	}
 
 	if (State == EPresentationState::Preloading && bBackgroundVideoReady && !bBackgroundPrerolled && BackgroundPlayer &&
 		BackgroundPlayer->GetTime() > FTimespan::Zero())
@@ -2754,6 +3366,28 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 		UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("intro.mp4 llegó a 00:00:13:06; transición inmediata al menú."));
 		BeginMenu();
 		return;
+	}
+
+	// Keep the cinematic intact, but expose a clear way into the hub after three
+	// seconds. The button remains available during the title reveal as well.
+	if (State == EPresentationState::Intro && bIntroPlaybackStarted && IntroVideoPlayer &&
+		!bEarlyStartButtonVisible && IntroVideoPlayer->GetTime() >= FTimespan::FromSeconds(3.0))
+	{
+		bEarlyStartButtonVisible = true;
+		EarlyStartButtonElapsed = 0.0f;
+		WelcomeRoot->SetRenderOpacity(0.0f);
+		WelcomeRoot->SetVisibility(ESlateVisibility::Visible);
+		SetUserFocus(GetOwningPlayer());
+		SetKeyboardFocus();
+		UE_LOG(UBFPresentation::LogUBFPresentation, Log,
+			TEXT("Botón de entrada al menú disponible tras 3 s de intro; se conserva la reproducción de intro.mp4."));
+	}
+
+	if (bEarlyStartButtonVisible && (State == EPresentationState::Intro || State == EPresentationState::MenuReveal))
+	{
+		EarlyStartButtonElapsed += InDeltaTime;
+		const float ButtonReveal = FMath::Clamp(EarlyStartButtonElapsed / 0.38f, 0.0f, 1.0f);
+		WelcomeRoot->SetRenderOpacity(1.0f - FMath::Square(1.0f - ButtonReveal));
 	}
 
 	// musicintro is deliberately delayed until its configured mark of intro.mp4.  The local
@@ -2806,12 +3440,16 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 		}
 		if (LogoImage)
 		{
-			const float Reveal = FMath::Clamp(MenuElapsed / 0.65f, 0.0f, 1.0f);
-			const float EasedReveal = 1.0f - FMath::Square(1.0f - Reveal);
-			LogoImage->SetRenderOpacity(EasedReveal);
+			const float Reveal = FMath::Clamp(MenuElapsed / 0.82f, 0.0f, 1.0f);
+			const float C1 = 1.70158f;
+			const float C3 = C1 + 1.0f;
+			const float Spring = 1.0f + C3 * FMath::Pow(Reveal - 1.0f, 3.0f) +
+				C1 * FMath::Pow(Reveal - 1.0f, 2.0f);
+			const float Fade = Reveal * Reveal * (3.0f - 2.0f * Reveal);
+			LogoImage->SetRenderOpacity(Fade);
 			LogoImage->SetRenderTransform(FWidgetTransform(
-				FVector2D(0.0f, FMath::Lerp(16.0f, 0.0f, EasedReveal)),
-				FVector2D(FMath::Lerp(0.92f, 1.0f, EasedReveal)), FVector2D::ZeroVector, 0.0f));
+				FVector2D(0.0f, FMath::Lerp(54.0f, 0.0f, Spring)),
+				FVector2D(FMath::Lerp(0.76f, 1.0f, Spring)), FVector2D(0.5f), FMath::Lerp(-4.0f, 0.0f, Spring)));
 		}
 	}
 
@@ -2826,10 +3464,18 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 			WelcomeRoot->SetRenderOpacity(EasedReveal);
 			if (LogoImage)
 			{
-				const float LogoReveal = FMath::Clamp(WelcomeElapsed / 0.82f, 0.0f, 1.0f);
-				LogoImage->SetRenderOpacity(LogoReveal);
-				LogoImage->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, FMath::Lerp(22.0f, 0.0f, EasedReveal)),
-					FVector2D(FMath::Lerp(0.94f, 1.0f, EasedReveal)), FVector2D::ZeroVector, 0.0f));
+				const float LogoReveal = FMath::Clamp(WelcomeElapsed / 0.90f, 0.0f, 1.0f);
+				const float C1 = 1.70158f;
+				const float C3 = C1 + 1.0f;
+				const float Spring = 1.0f + C3 * FMath::Pow(LogoReveal - 1.0f, 3.0f) +
+					C1 * FMath::Pow(LogoReveal - 1.0f, 2.0f);
+				const float Fade = LogoReveal * LogoReveal * (3.0f - 2.0f * LogoReveal);
+				const float Breath = LogoReveal >= 1.0f ? FMath::Sin(MenuElapsed * 0.78f) : 0.0f;
+				LogoImage->SetRenderOpacity(Fade);
+				LogoImage->SetRenderTransform(FWidgetTransform(
+					FVector2D(0.0f, FMath::Lerp(46.0f, 0.0f, Spring) + Breath * 1.1f),
+					FVector2D(FMath::Lerp(0.77f, 1.0f, Spring) + Breath * 0.004f),
+					FVector2D(0.5f), FMath::Lerp(-3.5f, 0.0f, Spring)));
 			}
 		}
 		else
@@ -2864,6 +3510,13 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 					CharacterPortraitMarkText->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, FMath::Lerp(24.0f, 0.0f, ArtEase)),
 						FVector2D(FMath::Lerp(0.82f, 1.0f, ArtEase)), FVector2D::ZeroVector, 0.0f));
 				}
+				if (CharacterPreviewImage)
+				{
+					CharacterPreviewImage->SetRenderOpacity(ArtEase);
+					CharacterPreviewImage->SetRenderTransform(FWidgetTransform(
+						FVector2D(0.0f, FMath::Lerp(18.0f, 0.0f, ArtEase)),
+						FVector2D(FMath::Lerp(0.94f, 1.0f, ArtEase)), FVector2D::ZeroVector, 0.0f));
+				}
 				const float DetailsProgress = FMath::Clamp((CharacterEntryElapsed - 0.10f) / 0.52f, 0.0f, 1.0f);
 				const float DetailsEase = 1.0f - FMath::Square(1.0f - DetailsProgress);
 				if (CharacterDetailsText)
@@ -2875,21 +3528,10 @@ void UUBFPresentationWidget::NativeTick(const FGeometry& MyGeometry, float InDel
 			}
 			if (LogoImage)
 			{
-				FVector2D Translation(0.0f, FMath::Sin(MenuElapsed * 0.65f) * 2.5f);
-				float Opacity = 1.0f;
-				if (GlitchRemaining <= 0.0f && MenuElapsed >= NextGlitchTime)
-				{
-					GlitchRemaining = FMath::FRandRange(0.035f, 0.075f);
-					NextGlitchTime = MenuElapsed + FMath::FRandRange(4.0f, 7.5f);
-				}
-				if (GlitchRemaining > 0.0f)
-				{
-					GlitchRemaining -= InDeltaTime;
-					Translation.X += FMath::FRandRange(-5.0f, 5.0f);
-					Opacity = FMath::FRandRange(0.88f, 1.0f);
-				}
-				LogoImage->SetRenderTransform(FWidgetTransform(Translation, FVector2D(1.0f), FVector2D::ZeroVector, 0.0f));
-				LogoImage->SetRenderOpacity(Opacity);
+				const float Breath = FMath::Sin(MenuElapsed * 0.72f);
+				LogoImage->SetRenderTransform(FWidgetTransform(FVector2D(0.0f, Breath * 1.0f),
+					FVector2D(1.0f + Breath * 0.003f), FVector2D(0.5f), Breath * 0.12f));
+				LogoImage->SetRenderOpacity(1.0f);
 			}
 		}
 	}

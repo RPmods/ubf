@@ -150,6 +150,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ability")
 	FText DisplayName;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ability", meta=(MultiLine="true"))
+	FText DetailedDescription;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
 	TObjectPtr<UInputAction> InputAction;
 

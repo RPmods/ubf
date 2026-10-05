@@ -1104,7 +1104,8 @@ bool AUBFCombatCharacter::ActivateAbility(uint8 AbilitySlot, bool bNotifyOwningP
 		LaunchCharacter(Facing * DashDistance, true, false);
 	}
 
-	const FVector ImpactPoint = GetActorLocation() + Facing * ImpactOffset;
+	const FVector ImpactPoint = Effect == EUBFAbilityEffect::SelfPulse
+		? GetActorLocation() : GetActorLocation() + Facing * ImpactOffset;
 	int32 HitCount = 0;
 	for (TActorIterator<AUBFCombatCharacter> It(GetWorld()); It; ++It)
 	{

@@ -19,6 +19,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	void SetTeamLineupCounts(int32 RedTeamCount, int32 BlueTeamCount);
+	void SetSoloPreviewMode(bool bEnable);
+	void SetShowcaseActive(bool bActive);
 	UTextureRenderTarget2D* GetPreviewTexture() const { return PreviewTexture; }
 
 private:
@@ -38,5 +40,8 @@ private:
 
 	int32 RedTeamCount = 1;
 	int32 BlueTeamCount = 0;
+	bool bSoloPreviewMode = true;
+	bool bShowcaseActive = true;
 	float EntryElapsed = 0.0f;
+	float CaptureElapsed = 0.0f;
 };

@@ -103,13 +103,16 @@ void UUBFGameInstance::Init()
 	}
 #endif
 
-	if (SessionUserName.IsEmpty())
-	{
-		SessionUserName = TEXT("Usuario");
-	}
-
 	if (UUBFPlayerDataSubsystem* PlayerData = GetSubsystem<UUBFPlayerDataSubsystem>())
 	{
-		PlayerData->EnsurePlayerName(SessionUserName);
+		if (SessionUserName.IsEmpty())
+		{
+			// In editor/development, keep the saved profile if no launcher is supplying a name.
+			PlayerData->EnsurePlayerName(TEXT(""));
+		}
+		else
+		{
+			PlayerData->SyncPlayerNameFromLauncher(SessionUserName);
+		}
 	}
 }

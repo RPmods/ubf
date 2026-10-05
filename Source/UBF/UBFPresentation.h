@@ -94,9 +94,21 @@ private:
 		Settings
 	};
 
+	enum class EInventoryCategory : uint8
+	{
+		All,
+		Armor,
+		Weapons,
+		Accessories
+	};
+
 	void BuildInterface();
+	void LoadUIArtResources();
+	UTexture2D* LoadUITexture(const FString& FileName) const;
 	void BuildMenu();
 	void BuildWelcomeScreen();
+	void BuildClosedBetaNotice();
+	void ShowClosedBetaNotice();
 	void BuildPages();
 	void PrepareResources();
 	void ResetPresentationResources();
@@ -115,9 +127,11 @@ private:
 	void BuildCharacterDraft();
 	void DestroyDraftShowcase();
 	void StartCharacterDraft();
+	void EnsureMenuCharacterShowcase();
 	void RefreshCharacterDraft();
 	void SetMenuPage(EMenuPage NewPage);
 	void RefreshPlayerData();
+	void SetInventoryCategory(EInventoryCategory Category);
 	void ShowRewardToast(const FString& Summary);
 	void StartCurrencyRewardAnimation(int32 PreviousGold, int32 PreviousEventPoints, int32 PreviousGachaTickets);
 	void PositionWidget(UWidget* Widget, const FAnchors& Anchors, const FVector2D& Alignment,
@@ -164,6 +178,18 @@ private:
 
 	UFUNCTION()
 	void OnInventoryClicked();
+
+	UFUNCTION()
+	void OnInventoryAllClicked();
+
+	UFUNCTION()
+	void OnInventoryArmorClicked();
+
+	UFUNCTION()
+	void OnInventoryWeaponsClicked();
+
+	UFUNCTION()
+	void OnInventoryAccessoriesClicked();
 
 	UFUNCTION()
 	void OnProfileClicked();
@@ -244,6 +270,7 @@ private:
 	void OnHomeClicked();
 	UFUNCTION()
 	void OnContinueFromWelcomeClicked();
+	void OnCloseClosedBetaNoticeClicked();
 	UFUNCTION()
 	void OnContinueCharacterClicked();
 
@@ -321,6 +348,15 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UCanvasPanel> WelcomeRoot;
+
+	UPROPERTY()
+	TObjectPtr<UCanvasPanel> ClosedBetaRoot;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> WelcomeUserNameText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> ClosedBetaProfileText;
 
 	UPROPERTY()
 	TObjectPtr<UCanvasPanel> LoadingRoot;
@@ -401,6 +437,18 @@ private:
 	TObjectPtr<UTextBlock> InventorySummaryText;
 
 	UPROPERTY()
+	TObjectPtr<UTextBlock> InventoryCharacterNameText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> InventoryCharacterInfoText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> InventoryCategoryText;
+
+	UPROPERTY()
+	TObjectPtr<UImage> InventoryCharacterPreviewImage;
+
+	UPROPERTY()
 	TObjectPtr<UWrapBox> InventoryItemsGrid;
 
 	UPROPERTY()
@@ -437,6 +485,12 @@ private:
 	TObjectPtr<UTextBlock> RoomPreviewText;
 
 	UPROPERTY()
+	TObjectPtr<UTextBlock> RoomRedRosterText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> RoomBlueRosterText;
+
+	UPROPERTY()
 	TObjectPtr<UTextBlock> CharacterNameText;
 
 	UPROPERTY()
@@ -447,6 +501,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> CharacterPortraitRoleText;
+
+	UPROPERTY()
+	TObjectPtr<UImage> CharacterPreviewImage;
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> QualityValueText;
@@ -502,6 +559,42 @@ private:
 	UPROPERTY()
 	TObjectPtr<UTexture2D> LogoTexture;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIFrameGoldTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIFrameRedTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIFrameBlueTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIArmorIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIWeaponIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIAccessoryIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UICharacterIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UIShopIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UISkillQIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UISkillEIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UISkillUltimateIconTexture;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> UISkillPassiveIconTexture;
+
 	UPROPERTY()
 	TObjectPtr<USoundWave> IntroSound;
 
@@ -536,6 +629,8 @@ private:
 	float DraftElapsed = 0.0f;
 	float DraftCountdownRemaining = 0.0f;
 	float WelcomeElapsed = 0.0f;
+	float ClosedBetaNoticeElapsed = 0.0f;
+	float EarlyStartButtonElapsed = 0.0f;
 	float MenuEntranceElapsed = 0.0f;
 	float PageEntranceElapsed = 0.0f;
 	float CharacterEntryElapsed = 0.0f;
@@ -553,6 +648,7 @@ private:
 	int32 SelectedBotFillModeIndex = 1;
 	int32 SelectedBotDifficultyIndex = 1;
 	int32 SelectedCharacterIndex = 0;
+	EInventoryCategory SelectedInventoryCategory = EInventoryCategory::All;
 	TArray<FName> CharacterIds;
 	int32 SelectedQualityIndex = 0;
 	int32 SelectedFrameLimitIndex = 1;
@@ -564,6 +660,8 @@ private:
 	uint32 InventoryWidgetBuildSerial = 0;
 	bool bCurrencyRewardAnimating = false;
 	bool bShowingWelcomeScreen = false;
+	bool bShowingClosedBetaNotice = false;
+	bool bEarlyStartButtonVisible = false;
 	bool bLoadingScreenActive = false;
 	bool bDraftReady = false;
 	bool bDraftCountdownActive = false;

@@ -124,6 +124,25 @@ void UUBFPlayerDataSubsystem::EnsurePlayerName(const FString& SuggestedName)
 	NotifyDataChanged();
 }
 
+void UUBFPlayerDataSubsystem::SyncPlayerNameFromLauncher(const FString& LauncherName)
+{
+	const FString CleanName = LauncherName.TrimStartAndEnd().Left(24);
+	if (CleanName.IsEmpty())
+	{
+		return;
+	}
+
+	UUBFPlayerSaveGame* Data = EnsureData();
+	if (!Data || Data->PlayerName == CleanName)
+	{
+		return;
+	}
+
+	Data->PlayerName = CleanName;
+	SavePlayerData();
+	NotifyDataChanged();
+}
+
 FName UUBFPlayerDataSubsystem::GetSelectedCharacterId() const
 {
 	return PlayerData && !PlayerData->SelectedCharacterId.IsNone()
