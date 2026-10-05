@@ -1,10 +1,10 @@
 {
-  "version": "1.0.5-beta",
+  "version": "1.0.6-beta",
   "package": {
-    "fileName": "UBF-v1.0.5-beta.zip",
-    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.5-beta/UBF-v1.0.5-beta.zip",
-    "size": 458967118,
-    "sha256": "dfff574b620aa6cf8a53b23fed8e72d5c94b431534d157dfd338ba9fda39b14c"
+    "fileName": "UBF-v1.0.6-beta-gamefeatures-fix.zip",
+    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.6-beta/UBF-v1.0.6-beta-gamefeatures-fix.zip",
+    "size": 569551622,
+    "sha256": "a6531792a03d53464c848a0677d10c85ebe2bdf6bd15ef4e97ce7bcb319a018c"
   },
   "files": [
     {
@@ -74,13 +74,13 @@
     },
     {
       "path": "Manifest_NonUFSFiles_Win64.txt",
-      "size": 2144,
-      "sha256": "3196029d397fdf1eddd2fc3db9006a7a22dfe8010284961435823650425efa37"
+      "size": 3383,
+      "sha256": "4afb0f0024f89effa6d0db5a85e25747b5ca37afb69720ceb0cf87a548d6cec5"
     },
     {
       "path": "Manifest_UFSFiles_Win64.txt",
-      "size": 202446,
-      "sha256": "cce2db4d71948b8e6533a37c43e46ddbaf1f182d218ff32faca7e2f60c691113"
+      "size": 209178,
+      "sha256": "bbf59fc024313437028caabf9f99a4a6266bf12322c7bcc828b24007f87c5048"
     },
     {
       "path": "NOTICES.txt",
@@ -114,33 +114,33 @@
     },
     {
       "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
-      "size": 169740288,
-      "sha256": "c6f9d94e3c255dce8ed45f478deb080664ed8647903c743a07a8f6efe0beb17a"
+      "size": 166269952,
+      "sha256": "fc5a8685e7676492b885f4e206787e295ff83f150585d5669e499dab0ed37c19"
     },
     {
       "path": "UBF/Content/Paks/global.ucas",
-      "size": 3354656,
-      "sha256": "91ac232890d4fdd5613f9d6ae3d0761cdd88a29187c87b035f15b6d6cb709955"
+      "size": 3216240,
+      "sha256": "a8791ac2047e62f8f23ded505c45604eca6a9cb974828b8244311e79ec8a752e"
     },
     {
       "path": "UBF/Content/Paks/global.utoc",
-      "size": 818,
-      "sha256": "77d552b979dca1374b01c3d2ca59f11f06f12e20da0a4522c275cf89f15ff144"
+      "size": 794,
+      "sha256": "0f840fec6285a4787c0f348e651a504685f0281c59fcf86549ec265301f30e98"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.pak",
-      "size": 10695609,
-      "sha256": "2300b43b7c2694c05e468edfdcf00d160830b8c16a4062a565d1a7cebc051d3f"
+      "size": 10650021,
+      "sha256": "49af41c61d61a3cd9008857e946b5933e9fdeee256767e6dfa7d8fe9c719cd35"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.ucas",
-      "size": 127433040,
-      "sha256": "a4e1062ebca1282fd5a661ab01a498300d335045ef28360182a7f780b20c398a"
+      "size": 128841440,
+      "sha256": "e8dadc71156cc7b0795de84edbd1f8665d8c2e100580254c83df2aaa672c2e39"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.utoc",
-      "size": 122594,
-      "sha256": "d766ee5472f7171ba37f2378a6e9c1b61834b88b76fcf2a79d96994dbfbe9767"
+      "size": 134325,
+      "sha256": "74febebbbba75927a79a059e6c67af27e0f6e1f7b2e3902c8e62eaef3d5f9216"
     },
     {
       "path": "UBF/Content/Presentation/Audio/introdution_ubf.mp3",
@@ -149,8 +149,8 @@
     },
     {
       "path": "UBF/Content/Presentation/Audio/introdution_ubf.uasset",
-      "size": 381947,
-      "sha256": "81f649164448cc231d9d3c78d2ea581a388be0cedd115d77b0a47b01dd62278d"
+      "size": 456062,
+      "sha256": "63eccc1f4d6e98d5035d82458f40acee618ecc7f1555f83c59ace3cca1980566"
     },
     {
       "path": "UBF/Content/Presentation/Audio/musicintro.mp3",
@@ -196,6 +196,71 @@
       "path": "UBF.exe",
       "size": 231936,
       "sha256": "ff0b206e281ba8ccdf0767e26ec718e148f1ef5c1797ebd69796d804e3364685"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/introdution_ubf.wav",
+      "size": 1770554,
+      "sha256": "61b5d2ff89a6f2f56be8f50290f5ed7f3c9298c8c5f5ce8ded1f936b6b9fa168"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/introdution_ubf_normalized.wav",
+      "size": 1770554,
+      "sha256": "61b5d2ff89a6f2f56be8f50290f5ed7f3c9298c8c5f5ce8ded1f936b6b9fa168"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/introdution_ubf_normalized.uasset",
+      "size": 452277,
+      "sha256": "8e82c35700a894ded031201fac661959c7bf4cb99dfe6b270d6b72bc375080ce"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_MAP_LOADING.wma",
+      "size": 3735092,
+      "sha256": "dbe36721ff70d09a5204ad57694a74f562139bafdb69308c8d3787aa805f2121"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_01.wma",
+      "size": 4471092,
+      "sha256": "fe74b8189f5346e7da92dfdc9eef6f3680f454f9ebb80dc742df579f8bea582d"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_02.wma",
+      "size": 8087092,
+      "sha256": "1bf9c5003a414db299ab6b986e57d767fffb7cd9f4d8303388e48af02ac075fc"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_03.wma",
+      "size": 4176680,
+      "sha256": "b3fb739bdeb74a364e8139c6c30f7a2b13cd1729a6acb818363e5c59a23ce94c"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_ROUND_LOST_TEAM.wma",
+      "size": 1043892,
+      "sha256": "ad57735a63630e3847aafc103a0c5264489ee63b889f51c898aa3a1c4383edb1"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_ROUND_WIN_TEAM.wma",
+      "size": 1927092,
+      "sha256": "aec1bec620da4ddf0799319b64e8b4656e2be6f2176f19cd403d0cfeee49c6fe"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/round_enemy_kill_golem_gold.wma",
+      "size": 102942,
+      "sha256": "9084ec3ef4f275a7b1597fe4c1a2e7fa43c84a92c2d3799816135e323fdd5920"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/round_enemyattack_teamgolem_announce.wma",
+      "size": 93342,
+      "sha256": "13f186f277cc9bb5f3dfd77d2f98dccb7f29aed35a9b5cef0bf4e5046be18179"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/round_friendly_kill_golem_gold.wma",
+      "size": 112542,
+      "sha256": "5ecc9de03282c6f744d3722bf6beae8557b6d9f0207c0362b6a3123f593b0be3"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/round_introduction_1.wma",
+      "size": 160542,
+      "sha256": "18b1040e39012a8144b269268a0a9a341fba6a3554a61e5b0093deef908f13e1"
     }
   ]
 }
