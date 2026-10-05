@@ -10,6 +10,6 @@ public class UBF : ModuleRules
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "Slate", "SlateCore",
 			"Media", "MediaAssets", "ImageWrapper"
 		});
-		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "AudioMixer" });
 	}
 }
