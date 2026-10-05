@@ -1713,6 +1713,7 @@ void UUBFPresentationWidget::EnterInteractiveMenu()
 	MenuRoot->SetVisibility(ESlateVisibility::Collapsed);
 	WelcomeRoot->SetRenderOpacity(0.0f);
 	WelcomeRoot->SetVisibility(ESlateVisibility::Visible);
+	SetKeyboardFocus();
 	RefreshPlayerData();
 	UE_LOG(UBFPresentation::LogUBFPresentation, Log, TEXT("Fase de bienvenida del menú iniciada."));
 }
@@ -2425,12 +2426,9 @@ void UUBFPresentationWidget::RefreshCharacterDraft()
 			*Definition->PassiveName.ToString(), *Definition->PassiveDescription.ToString())));
 	}
 
-	int32 TeamSize = SelectedTeamSize;
-	const FString TeamSizeOption = UGameplayStatics::ParseOption(PendingTrainingOptions, TEXT("TeamSize"));
-	if (!TeamSizeOption.IsEmpty()) TeamSize = FMath::Clamp(FCString::Atoi(*TeamSizeOption), 1, 5);
-	const FString BotFillOption = UGameplayStatics::ParseOption(PendingTrainingOptions, TEXT("BotFill"));
-	const bool bFillAllOpenSlots = BotFillOption.Equals(TEXT("All"), ESearchCase::IgnoreCase);
-	const bool bFillOpponent = BotFillOption.Equals(TEXT("Opponent"), ESearchCase::IgnoreCase);
+	const int32 TeamSize = FMath::Clamp(SelectedTeamSize, 1, 5);
+	const bool bFillAllOpenSlots = SelectedBotFillModeIndex == 2;
+	const bool bFillOpponent = SelectedBotFillModeIndex == 1 || bFillAllOpenSlots;
 	if (DraftShowcaseActor)
 	{
 		DraftShowcaseActor->SetTeamLineupCounts(
