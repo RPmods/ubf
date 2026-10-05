@@ -29,7 +29,7 @@ void AUBFBotAIController::Tick(float DeltaSeconds)
 	}
 
 	AUBFCombatCharacter* Fighter = Cast<AUBFCombatCharacter>(GetPawn());
-	if (!Fighter || Fighter->GetCurrentHealth() <= 0.0f)
+	if (!Fighter || Fighter->GetCurrentHealth() <= 0.0f || !Fighter->CanFight())
 	{
 		return;
 	}
@@ -252,6 +252,10 @@ AUBFCombatCharacter* AUBFBotAIController::FindNearestEnemy(AUBFCombatCharacter* 
 		AUBFCombatCharacter* Candidate = *It;
 		if (!Candidate || Candidate == Fighter || Candidate->GetCurrentHealth() <= 0.0f
 			|| Candidate->GetTeamId() == Fighter->GetTeamId())
+		{
+			continue;
+		}
+		if (Candidate->IsMasterGolem() && !Fighter->IsGoldenBearer())
 		{
 			continue;
 		}

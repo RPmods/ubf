@@ -23,6 +23,9 @@ class UTexture2D;
 class UVerticalBox;
 class UWidget;
 class UWidgetSwitcher;
+class UProgressBar;
+class UWrapBox;
+class AUBFDraftShowcaseActor;
 struct FStreamableHandle;
 struct FKeyEvent;
 struct FPointerEvent;
@@ -73,6 +76,8 @@ private:
 		Intro,
 		MenuReveal,
 		Menu,
+		Draft,
+		LoadingLevel,
 		DevelopmentError
 	};
 
@@ -91,6 +96,7 @@ private:
 
 	void BuildInterface();
 	void BuildMenu();
+	void BuildWelcomeScreen();
 	void BuildPages();
 	void PrepareResources();
 	void ResetPresentationResources();
@@ -105,6 +111,11 @@ private:
 	void EnterInteractiveMenu();
 	void StartLoopMusic();
 	void ShowDevelopmentError(const FString& Reason);
+	void BeginMatchLoading();
+	void BuildCharacterDraft();
+	void DestroyDraftShowcase();
+	void StartCharacterDraft();
+	void RefreshCharacterDraft();
 	void SetMenuPage(EMenuPage NewPage);
 	void RefreshPlayerData();
 	void ShowRewardToast(const FString& Summary);
@@ -225,6 +236,16 @@ private:
 
 	UFUNCTION()
 	void OnTrainingClicked();
+	UFUNCTION()
+	void OnDraftReadyClicked();
+	UFUNCTION()
+	void OnDraftCancelClicked();
+	UFUNCTION()
+	void OnHomeClicked();
+	UFUNCTION()
+	void OnContinueFromWelcomeClicked();
+	UFUNCTION()
+	void OnContinueCharacterClicked();
 
 	UFUNCTION()
 	void OnPreviousCharacterClicked();
@@ -299,6 +320,75 @@ private:
 	TObjectPtr<UCanvasPanel> MenuRoot;
 
 	UPROPERTY()
+	TObjectPtr<UCanvasPanel> WelcomeRoot;
+
+	UPROPERTY()
+	TObjectPtr<UCanvasPanel> LoadingRoot;
+
+	UPROPERTY()
+	TObjectPtr<UCanvasPanel> DraftRoot;
+
+	UPROPERTY()
+	TObjectPtr<UProgressBar> DraftTimerBar;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftTimerText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftStatusText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftCharacterNameText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftCharacterRoleText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftBlueRosterText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftRedRosterText;
+
+	UPROPERTY()
+	TObjectPtr<UImage> DraftPreviewImage;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AUBFDraftShowcaseActor> DraftShowcaseActor;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftPrimarySkillText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftSecondarySkillText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftUltimateText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> DraftPassiveText;
+
+	UPROPERTY()
+	TObjectPtr<UButton> DraftPreviousButton;
+
+	UPROPERTY()
+	TObjectPtr<UButton> DraftNextButton;
+
+	UPROPERTY()
+	TObjectPtr<UButton> DraftReadyButton;
+
+	UPROPERTY()
+	TObjectPtr<UButton> DraftCancelButton;
+
+	UPROPERTY()
+	TObjectPtr<UProgressBar> LoadingProgressBar;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> LoadingStageText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> LoadingMapTitleText;
+
+	UPROPERTY()
 	TObjectPtr<UWidgetSwitcher> PageSwitcher;
 
 	UPROPERTY()
@@ -309,6 +399,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> InventorySummaryText;
+
+	UPROPERTY()
+	TObjectPtr<UWrapBox> InventoryItemsGrid;
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> ProfileSummaryText;
@@ -341,10 +434,19 @@ private:
 	TObjectPtr<UTextBlock> MatchSetupHintText;
 
 	UPROPERTY()
+	TObjectPtr<UTextBlock> RoomPreviewText;
+
+	UPROPERTY()
 	TObjectPtr<UTextBlock> CharacterNameText;
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> CharacterDetailsText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> CharacterPortraitMarkText;
+
+	UPROPERTY()
+	TObjectPtr<UTextBlock> CharacterPortraitRoleText;
 
 	UPROPERTY()
 	TObjectPtr<UTextBlock> QualityValueText;
@@ -430,6 +532,13 @@ private:
 	float RewardToastRemaining = 0.0f;
 	float RewardToastElapsed = 0.0f;
 	float CurrencyRewardElapsed = 0.0f;
+	float LoadingElapsed = 0.0f;
+	float DraftElapsed = 0.0f;
+	float DraftCountdownRemaining = 0.0f;
+	float WelcomeElapsed = 0.0f;
+	float MenuEntranceElapsed = 0.0f;
+	float PageEntranceElapsed = 0.0f;
+	float CharacterEntryElapsed = 0.0f;
 	int32 CurrencyStartGold = 0;
 	int32 CurrencyStartEventPoints = 0;
 	int32 CurrencyStartGachaTickets = 0;
@@ -449,8 +558,15 @@ private:
 	int32 SelectedFrameLimitIndex = 1;
 	bool bVSyncEnabled = true;
 	FString PendingShopItemId;
+	FString PendingTrainingOptions;
+	FString LastRenderedInventoryKey = TEXT("__not_rendered__");
 	FName PendingInputRebindAction;
+	uint32 InventoryWidgetBuildSerial = 0;
 	bool bCurrencyRewardAnimating = false;
+	bool bShowingWelcomeScreen = false;
+	bool bLoadingScreenActive = false;
+	bool bDraftReady = false;
+	bool bDraftCountdownActive = false;
 	bool bLogoReady = false;
 	bool bSoundAssetsReady = false;
 	bool bIntroVideoReady = false;

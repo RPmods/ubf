@@ -9,6 +9,7 @@ class APlayerController;
 class AUBFBotAIController;
 class AUBFCombatCharacter;
 class AUBFGoldenGolemPickup;
+class AUBFCombatPlayerController;
 
 UENUM(BlueprintType)
 enum class EUBFBotFillMode : uint8
@@ -31,15 +32,26 @@ public:
 	virtual void Logout(AController* Exiting) override;
 
 	void NotifyFighterEliminated();
+	void NotifyPlayerReadyChanged();
 	void NotifyGoldenBearerPickedUp(AUBFCombatCharacter* Carrier, AUBFGoldenGolemPickup* Pickup);
 	void NotifyGoldenBearerEliminated(AUBFCombatCharacter* Carrier);
+	void NotifyGoldenGolemEliminated(AUBFCombatCharacter* Golem, AUBFCombatCharacter* LastHitBy);
+	void NotifyMasterGolemDamaged(int32 TeamId, AUBFCombatCharacter* Attacker, float HealthRatio);
 	void NotifyMasterGolemEliminated(int32 TeamId);
+	void HandleSurrender(AUBFCombatPlayerController* PlayerController);
+	void HandleAbandonRoom(AUBFCombatPlayerController* PlayerController);
 	bool IsMatchFinished() const { return bMatchFinished; }
+	bool IsRoundActive() const { return bRoundActive; }
 	bool IsGolemMode() const { return bGolemMode; }
 	float GetMatchDuration() const;
 
 private:
 	void CheckMatchOutcome();
+	void StartRoundCountdown();
+	void StartRound();
+	void EndRound(int32 WinningTeamId, bool bIsDraw);
+	void ContinueAfterRoundResults();
+	void DestroyGolemObjectives();
 	void FinishMatch(int32 WinningTeamId, bool bIsDraw);
 	void ReconcileBotRoster();
 	int32 GetPrimaryHumanTeam() const;
@@ -47,11 +59,15 @@ private:
 	FTransform GetTeamSpawnTransform(int32 TeamId, int32 SlotIndex) const;
 	AUBFBotAIController* SpawnBot(int32 TeamId, int32 SlotIndex);
 	void SpawnGolemObjectives();
-	void SpawnGoldenGolemPickup(const FVector& Location);
-	void ScoreGoldenBearer();
+	void SpawnGoldenGolem(const FVector& Location);
+	void ReturnToFrontEnd();
 	void ClearGoldenBearer();
+	void LockFighterForTransition(AUBFCombatCharacter* Fighter);
+	void UpdatePlayerReadiness();
+	void ResetPlayerReadiness();
+	bool AreAllPlayersReady() const;
 
-	UPROPERTY(EditDefaultsOnly, Category="UBF|Match", meta=(ClampMin="1", ClampMax="3"))
+	UPROPERTY(EditDefaultsOnly, Category="UBF|Match", meta=(ClampMin="1", ClampMax="5"))
 	int32 TeamSize = 1;
 
 	UPROPERTY(EditDefaultsOnly, Category="UBF|Match")
@@ -63,19 +79,19 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="UBF|Bots")
 	FName BotDifficulty = TEXT("NORMAL");
 
-	UPROPERTY(EditDefaultsOnly, Category="UBF|Golem Mode", meta=(ClampMin="1", ClampMax="5"))
-	int32 GolemScoreToWin = 3;
-
-	UPROPERTY(EditDefaultsOnly, Category="UBF|Golem Mode", meta=(ClampMin="5.0"))
-	float BearerHoldSecondsToScore = 25.0f;
-
 	int32 NextBotNumber = 1;
-	int32 GolemTeamScores[2] = { 0, 0 };
 	TWeakObjectPtr<AUBFCombatCharacter> CurrentGoldenBearer;
-	FTimerHandle GoldenBearerScoreTimer;
+	FTimerHandle MatchFlowTimer;
+	int32 RoundNumber = 1;
+	int32 RoundWins[2] = { 0, 0 };
 	bool bGolemMode = false;
+	bool bRoundActive = false;
 	FName HumanCharacterId = TEXT("Wizz");
 	bool bMatchFinished = false;
 	bool bOutcomeCheckPending = false;
+	bool bReturnToFrontEndAfterRound = false;
 	float MatchStartTime = 0.0f;
+	bool bMasterFirstHitAnnounced[2] = { false, false };
+	bool bMasterHalfHealthAnnounced[2] = { false, false };
+	bool bMasterCriticalHealthAnnounced[2] = { false, false };
 };

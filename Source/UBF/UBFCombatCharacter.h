@@ -60,6 +60,7 @@ public:
 	FName GetCharacterId() const { return CharacterId; }
 	bool IsGoldenBearer() const { return bIsGoldenBearer; }
 	bool IsMasterGolem() const { return bIsMasterGolem; }
+	bool IsGoldenGolem() const { return bIsGoldenGolem; }
 	FText GetCharacterDisplayName() const;
 	const UUBFCharacterAIProfile* GetCharacterAIProfile() const;
 
@@ -82,9 +83,14 @@ public:
 	void SetCharacterId(FName NewCharacterId);
 	void SetGoldenBearer(bool bNewValue);
 	void SetAsMasterGolem();
+	void SetAsGoldenGolem();
 	void ShowCombatMessage(const FString& Message, float Duration) { ClientShowCombatMessage(Message, Duration); }
 	void ShowMatchResultMessage(const FString& Message, float DurationSeconds,
 		int32 ExperienceReward, int32 GoldReward, int32 EventReward);
+	void ResetForNextRound(const FTransform& SpawnTransform);
+	bool CanFight() const;
+	void LockForRoundTransition() { ClientBeginRoundResults(); }
+	void UnlockForRoundStart() { ClientResetForNextRound(); }
 
 protected:
 	UFUNCTION(Server, Reliable)
@@ -116,6 +122,12 @@ protected:
 		int32 Knockouts, int32 Deaths, int32 MaxComboHits, float DurationSeconds,
 		int32 ExperienceReward, int32 GoldReward, int32 EventReward);
 
+	UFUNCTION(Client, Reliable)
+	void ClientBeginRoundResults();
+
+	UFUNCTION(Client, Reliable)
+	void ClientResetForNextRound();
+
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayActionAnimation(bool bWasHit, uint8 AttackStage);
 
@@ -124,6 +136,9 @@ protected:
 
 	UFUNCTION()
 	void OnRep_CharacterId();
+
+	UFUNCTION()
+	void OnRep_GolemType();
 
 private:
 	void MoveForward(float Value);
@@ -160,9 +175,9 @@ private:
 	void ReturnToMenu();
 	void AddSkillGauge(float Amount);
 	void ApplyCharacterDefinition();
+	void BuildGolemSilhouette(bool bGolden, int32 TeamColorId);
 	const UUBFAbilityDefinition* GetAbilityDefinition(uint8 AbilitySlot) const;
 	void UpdateLocomotionAnimation();
-	bool CanFight() const;
 	void RegisterConfirmedComboHit(float Now);
 	void ResolveGrab();
 	void PlayActionAnimation(bool bWasHit, uint8 AttackStage);
@@ -204,8 +219,13 @@ private:
 	UPROPERTY(Replicated, VisibleAnywhere, Category="UBF|Golem Mode")
 	bool bIsGoldenBearer = false;
 
-	UPROPERTY(Replicated, VisibleAnywhere, Category="UBF|Golem Mode")
+	UPROPERTY(ReplicatedUsing=OnRep_GolemType, VisibleAnywhere, Category="UBF|Golem Mode")
 	bool bIsMasterGolem = false;
+
+	UPROPERTY(ReplicatedUsing=OnRep_GolemType, VisibleAnywhere, Category="UBF|Golem Mode")
+	bool bIsGoldenGolem = false;
+
+	bool bGolemSilhouetteBuilt = false;
 
 	UPROPERTY(EditDefaultsOnly, Category="UBF|Combat|Skill Gauge", meta=(ClampMin="1.0"))
 	float SkillGaugeMaximum = 100.0f;

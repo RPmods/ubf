@@ -43,6 +43,26 @@ UUBFCharacterDefinition* UUBFCharacterCatalogSubsystem::FindCharacter(FName Char
 	return nullptr;
 }
 
+FName UUBFCharacterCatalogSubsystem::ChooseCharacterId(const TSet<FName>& ExcludedIds,
+	int32 PreferredStartIndex) const
+{
+	if (CharacterIds.IsEmpty())
+	{
+		return NAME_None;
+	}
+
+	const int32 StartIndex = FMath::Abs(PreferredStartIndex) % CharacterIds.Num();
+	for (int32 Offset = 0; Offset < CharacterIds.Num(); ++Offset)
+	{
+		const FName Candidate = CharacterIds[(StartIndex + Offset) % CharacterIds.Num()];
+		if (!ExcludedIds.Contains(Candidate))
+		{
+			return Candidate;
+		}
+	}
+	return NAME_None;
+}
+
 void UUBFCharacterCatalogSubsystem::BuildDefaultCatalog()
 {
 	Definitions.Reset();

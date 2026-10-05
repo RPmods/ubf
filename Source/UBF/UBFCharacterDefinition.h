@@ -339,6 +339,7 @@ class UBF_API UUBFCharacterCatalogSubsystem : public UGameInstanceSubsystem
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	const TArray<FName>& GetCharacterIds() const { return CharacterIds; }
+	FName ChooseCharacterId(const TSet<FName>& ExcludedIds, int32 PreferredStartIndex = 0) const;
 	UUBFCharacterDefinition* FindCharacter(FName CharacterId) const;
 
 private:

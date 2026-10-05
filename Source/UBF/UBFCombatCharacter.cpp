@@ -1,11 +1,14 @@
 #include "UBFCombatCharacter.h"
 #include "UBFCombatGameMode.h"
+#include "UBFCombatGameState.h"
 #include "UBFCharacterDefinition.h"
 #include "UBFPlayerData.h"
 
 #include "Animation/AnimSequence.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -203,9 +206,62 @@ void AUBFCombatCharacter::SetGoldenBearer(bool bNewValue)
 {
 	if (HasAuthority())
 	{
-		bIsGoldenBearer = bNewValue && !bIsMasterGolem;
+		bIsGoldenBearer = bNewValue && !bIsMasterGolem && !bIsGoldenGolem;
 		ForceNetUpdate();
 	}
+}
+
+void AUBFCombatCharacter::BuildGolemSilhouette(bool bGolden, int32 TeamColorId)
+{
+	if (bGolemSilhouetteBuilt || !GetWorld())
+	{
+		return;
+	}
+	bGolemSilhouetteBuilt = true;
+	GetMesh()->SetVisibility(false, true);
+	GetCapsuleComponent()->SetCapsuleSize(132.0f, 232.0f);
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	PrimaryActorTick.SetTickFunctionEnable(false);
+
+	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	UStaticMesh* Sphere = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	UStaticMesh* Cylinder = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	const FLinearColor StoneColor = bGolden ? FLinearColor(0.95f, 0.58f, 0.10f, 1.0f)
+		: (TeamColorId == 0 ? FLinearColor(0.62f, 0.12f, 0.15f, 1.0f)
+			: FLinearColor(0.10f, 0.30f, 0.68f, 1.0f));
+	auto AddPart = [this, StoneColor](const TCHAR* Name, UStaticMesh* StaticMeshAsset, const FVector& Position,
+		const FVector& Scale)
+	{
+		UStaticMeshComponent* Part = NewObject<UStaticMeshComponent>(this, FName(Name));
+		if (!Part)
+		{
+			return;
+		}
+		Part->SetupAttachment(GetCapsuleComponent());
+		Part->SetStaticMesh(StaticMeshAsset);
+		Part->SetRelativeLocation(Position);
+		Part->SetRelativeScale3D(Scale);
+		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Part->SetGenerateOverlapEvents(false);
+		const FVector Tint(StoneColor.R, StoneColor.G, StoneColor.B);
+		Part->SetVectorParameterValueOnMaterials(TEXT("BaseColor"), Tint);
+		Part->SetVectorParameterValueOnMaterials(TEXT("Color"), Tint);
+		Part->SetIsReplicated(false);
+		Part->RegisterComponent();
+	};
+	// Broad shoulders, a blocky torso, a carved head and heavy legs make a
+	// readable 4.6 m golem from arena camera distance using engine primitives.
+	AddPart(TEXT("GolemTorso"), Cube, FVector(0.0f, 0.0f, 58.0f), FVector(1.85f, 1.28f, 2.15f));
+	AddPart(TEXT("GolemShoulderLeft"), Cube, FVector(0.0f, -137.0f, 118.0f), FVector(1.18f, 0.82f, 0.82f));
+	AddPart(TEXT("GolemShoulderRight"), Cube, FVector(0.0f, 137.0f, 118.0f), FVector(1.18f, 0.82f, 0.82f));
+	AddPart(TEXT("GolemArmLeft"), Cylinder, FVector(0.0f, -177.0f, 4.0f), FVector(0.62f, 0.62f, 1.35f));
+	AddPart(TEXT("GolemArmRight"), Cylinder, FVector(0.0f, 177.0f, 4.0f), FVector(0.62f, 0.62f, 1.35f));
+	AddPart(TEXT("GolemLegLeft"), Cube, FVector(0.0f, -69.0f, -139.0f), FVector(0.77f, 0.72f, 1.14f));
+	AddPart(TEXT("GolemLegRight"), Cube, FVector(0.0f, 69.0f, -139.0f), FVector(0.77f, 0.72f, 1.14f));
+	AddPart(TEXT("GolemHead"), Sphere, FVector(0.0f, 0.0f, 224.0f), FVector(0.91f, 0.87f, 0.82f));
+	AddPart(TEXT("GolemCrest"), Cube, FVector(55.0f, 0.0f, 292.0f), FVector(0.31f, 0.82f, 0.34f));
+	ForceNetUpdate();
 }
 
 void AUBFCombatCharacter::SetAsMasterGolem()
@@ -215,22 +271,34 @@ void AUBFCombatCharacter::SetAsMasterGolem()
 		return;
 	}
 	bIsMasterGolem = true;
+	bIsGoldenGolem = false;
 	bIsGoldenBearer = false;
 	CharacterDefinition = nullptr;
 	CharacterId = TEXT("MasterGolem");
 	MaximumHealth = 900.0f;
 	CurrentHealth = MaximumHealth;
 	CurrentSkillGauge = 0.0f;
-	GetCapsuleComponent()->SetCapsuleSize(112.0f, 190.0f);
-	if (GetMesh())
+	MaximumHealth = 1800.0f;
+	CurrentHealth = MaximumHealth;
+	BuildGolemSilhouette(false, TeamId);
+	ForceNetUpdate();
+}
+
+void AUBFCombatCharacter::SetAsGoldenGolem()
+{
+	if (!HasAuthority())
 	{
-		GetMesh()->SetRelativeScale3D(FVector(1.8f));
+		return;
 	}
-	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
-	{
-		Movement->StopMovementImmediately();
-		Movement->DisableMovement();
-	}
+	bIsMasterGolem = false;
+	bIsGoldenGolem = true;
+	bIsGoldenBearer = false;
+	CharacterDefinition = nullptr;
+	CharacterId = TEXT("GoldenGolem");
+	MaximumHealth = 1400.0f;
+	CurrentHealth = MaximumHealth;
+	TeamId = 2;
+	BuildGolemSilhouette(true, 2);
 	ForceNetUpdate();
 }
 
@@ -364,7 +432,6 @@ void AUBFCombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		UInputAction* UltimateAction = CreateRuntimeInputAction(TEXT("Ultimate"), 0);
 		UInputAction* DashAction = CreateRuntimeInputAction(TEXT("Dash"), 0);
 		UInputAction* ChargedAttackAction = CreateRuntimeInputAction(TEXT("ChargedAttack"), 0);
-		UInputAction* ReturnAction = CreateRuntimeInputAction(TEXT("ReturnToMenu"), 0);
 
 		AddRuntimeInputMapping(MoveForwardAction, EKeys::W);
 		AddRuntimeInputMapping(MoveForwardAction, EKeys::S, true);
@@ -376,7 +443,6 @@ void AUBFCombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		AddRuntimeInputMapping(AttackAction, EKeys::LeftMouseButton);
 		AddRuntimeInputMapping(ChargedAttackAction, EKeys::RightMouseButton);
 		AddRuntimeInputMapping(DashAction, EKeys::LeftControl);
-		AddRuntimeInputMapping(ReturnAction, EKeys::Escape);
 
 		UUBFPlayerDataSubsystem* PlayerData = GetGameInstance()
 			? GetGameInstance()->GetSubsystem<UUBFPlayerDataSubsystem>() : nullptr;
@@ -398,7 +464,6 @@ void AUBFCombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInput->BindAction(DashAction, ETriggerEvent::Started, this, &AUBFCombatCharacter::EnhancedDash);
 		EnhancedInput->BindAction(ChargedAttackAction, ETriggerEvent::Started, this, &AUBFCombatCharacter::EnhancedChargedStarted);
 		EnhancedInput->BindAction(ChargedAttackAction, ETriggerEvent::Completed, this, &AUBFCombatCharacter::EnhancedChargedCompleted);
-		EnhancedInput->BindAction(ReturnAction, ETriggerEvent::Started, this, &AUBFCombatCharacter::EnhancedReturnToMenu);
 
 		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 		{
@@ -430,7 +495,6 @@ void AUBFCombatCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	PlayerInputComponent->BindAction(TEXT("Dash"), IE_Pressed, this, &AUBFCombatCharacter::RequestDash);
 	PlayerInputComponent->BindAction(TEXT("ChargedSpecial"), IE_Pressed, this, &AUBFCombatCharacter::HandleChargedSpecialPressed);
 	PlayerInputComponent->BindAction(TEXT("ChargedSpecial"), IE_Released, this, &AUBFCombatCharacter::HandleChargedSpecialReleased);
-	PlayerInputComponent->BindAction(TEXT("ReturnToMenu"), IE_Pressed, this, &AUBFCombatCharacter::ReturnToMenu);
 }
 
 UInputAction* AUBFCombatCharacter::CreateRuntimeInputAction(const FName& ActionId, uint8 ValueType)
@@ -840,6 +904,85 @@ void AUBFCombatCharacter::ClientFinishMatch_Implementation(const FString& Messag
 	bIsChargingSpecial = false;
 }
 
+void AUBFCombatCharacter::ClientBeginRoundResults_Implementation()
+{
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(PendingBasicAttackInputTimer);
+	}
+	bPendingBasicAttackInput = false;
+	bLocalGrabGestureActive = false;
+	bIsChargingSpecial = false;
+	if (APlayerController* Player = Cast<APlayerController>(GetController()))
+	{
+		Player->SetIgnoreMoveInput(true);
+		Player->SetIgnoreLookInput(true);
+	}
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+	}
+}
+
+void AUBFCombatCharacter::ClientResetForNextRound_Implementation()
+{
+	bHasMatchResult = false;
+	MatchResultLabel.Reset();
+	if (APlayerController* Player = Cast<APlayerController>(GetController()))
+	{
+		Player->SetIgnoreMoveInput(false);
+		Player->SetIgnoreLookInput(false);
+	}
+}
+
+void AUBFCombatCharacter::ResetForNextRound(const FTransform& SpawnTransform)
+{
+	if (!HasAuthority() || bIsMasterGolem || !GetWorld())
+	{
+		return;
+	}
+
+	GetWorld()->GetTimerManager().ClearTimer(PendingBasicAttackInputTimer);
+	GetWorld()->GetTimerManager().ClearTimer(GrabResolveTimer);
+	bPendingBasicAttackInput = false;
+	bLocalGrabGestureActive = false;
+	bIsGrabStarting = false;
+	bIsChargingSpecial = false;
+	bCounterStanceArmed = false;
+	bApplyingAbilityDamage = false;
+	CurrentHealth = MaximumHealth;
+	CurrentSkillGauge = 0.0f;
+	LastBasicAttackTime = -100.0f;
+	LastConfirmedComboTime = -100.0f;
+	CurrentComboHits = 0;
+	NextComboStage = 0;
+	PendingDamageGaugeReward = 0.0f;
+	NextDashTime = 0.0f;
+	NextGrabTime = 0.0f;
+	ChargeStartTime = 0.0f;
+	NextChargedAttackTime = 0.0f;
+	CounterStanceEndTime = 0.0f;
+	CounterStanceDamage = 0.0f;
+	NextBasicDamageMultiplier = 1.0f;
+	MarkedDamageBonus = 0.0f;
+	MarkExpiryTime = 0.0f;
+	MarkedByTeamId = INDEX_NONE;
+	for (int32 Slot = 0; Slot < UE_ARRAY_COUNT(NextAbilityTimes); ++Slot)
+	{
+		NextAbilityTimes[Slot] = 0.0f;
+	}
+	SetGoldenBearer(false);
+	SetActorTransform(SpawnTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	SetActorEnableCollision(true);
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->SetMovementMode(MOVE_Walking);
+	}
+	OnRep_CurrentHealth();
+	ForceNetUpdate();
+}
+
 void AUBFCombatCharacter::ShowMatchResultMessage(const FString& Message, float DurationSeconds,
 	int32 ExperienceReward, int32 GoldReward, int32 EventReward)
 {
@@ -1197,6 +1340,15 @@ float AUBFCombatCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Da
 	{
 		Attacker = Cast<AUBFCombatCharacter>(EventInstigator->GetPawn());
 	}
+	if (bIsMasterGolem && (!Attacker || !Attacker->IsGoldenBearer()
+		|| Attacker->GetTeamId() == TeamId || Attacker->IsMasterGolem() || Attacker->IsGoldenGolem()))
+	{
+		return 0.0f;
+	}
+	if (bIsGoldenGolem && (!Attacker || Attacker->IsMasterGolem() || Attacker->IsGoldenGolem()))
+	{
+		return 0.0f;
+	}
 	bool bCountered = false;
 	float EffectiveDamage = DamageAmount;
 	const float DamageTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
@@ -1269,6 +1421,14 @@ float AUBFCombatCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Da
 	}
 	OnRep_CurrentHealth();
 	MulticastPlayActionAnimation(true, 0);
+	if (AppliedDamage > 0.0f && bIsMasterGolem)
+	{
+		if (AUBFCombatGameMode* MatchMode = GetWorld()->GetAuthGameMode<AUBFCombatGameMode>())
+		{
+			MatchMode->NotifyMasterGolemDamaged(TeamId, Attacker,
+				MaximumHealth > 0.0f ? CurrentHealth / MaximumHealth : 0.0f);
+		}
+	}
 	if (CurrentHealth <= 0.0f)
 	{
 		++MatchDeaths;
@@ -1282,6 +1442,10 @@ float AUBFCombatCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Da
 			if (bIsMasterGolem)
 			{
 				MatchMode->NotifyMasterGolemEliminated(TeamId);
+			}
+			else if (bIsGoldenGolem)
+			{
+				MatchMode->NotifyGoldenGolemEliminated(this, Attacker);
 			}
 			else
 			{
@@ -1300,6 +1464,11 @@ bool AUBFCombatCharacter::CanFight() const
 		return false;
 	}
 	const UWorld* World = GetWorld();
+	const AUBFCombatGameState* MatchState = World ? World->GetGameState<AUBFCombatGameState>() : nullptr;
+	if (MatchState && MatchState->GetRoundPhase() != EUBFMatchPhase::InRound)
+	{
+		return false;
+	}
 	const AUBFCombatGameMode* MatchMode = World ? World->GetAuthGameMode<AUBFCombatGameMode>() : nullptr;
 	return !MatchMode || !MatchMode->IsMatchFinished();
 }
@@ -1339,6 +1508,14 @@ void AUBFCombatCharacter::OnRep_CharacterId()
 	CurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, MaximumHealth);
 }
 
+void AUBFCombatCharacter::OnRep_GolemType()
+{
+	if (bIsMasterGolem || bIsGoldenGolem)
+	{
+		BuildGolemSilhouette(bIsGoldenGolem, TeamId);
+	}
+}
+
 void AUBFCombatCharacter::UpdateLocomotionAnimation()
 {
 	if (!GetMesh()) return;
@@ -1372,5 +1549,6 @@ void AUBFCombatCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AUBFCombatCharacter, CurrentSkillGauge);
 	DOREPLIFETIME(AUBFCombatCharacter, bIsGoldenBearer);
 	DOREPLIFETIME(AUBFCombatCharacter, bIsMasterGolem);
+	DOREPLIFETIME(AUBFCombatCharacter, bIsGoldenGolem);
 	DOREPLIFETIME(AUBFCombatCharacter, CharacterId);
 }
