@@ -1,37 +1,12 @@
 {
-  "version": "1.0.7-beta",
+  "version": "1.0.8-beta",
   "package": {
-    "fileName": "UBF-v1.0.7-beta.zip",
-    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.7-beta/UBF-v1.0.7-beta.zip",
-    "size": 506416379,
-    "sha256": "5a1ea6aec10ab65dcf77de13e253d4d9da6d13fbf1d34e71e0cfc0a13a0e53d0"
+    "fileName": "UBF-v1.0.8-beta.zip",
+    "downloadUrl": "https://github.com/RPmods/ubf/releases/download/v1.0.8-beta/UBF-v1.0.8-beta.zip",
+    "size": 616910910,
+    "sha256": "732fab570ff12c99133ec3d57eb898ecbdb65173d180fd06e3f6b815aad41107"
   },
   "files": [
-    {
-      "path": "Manifest_DebugFiles_Win64.txt",
-      "size": 214,
-      "sha256": "f556ea8f4e434a3099cccd1dc88c40f3b01afd80146400917e729acaa802107f"
-    },
-    {
-      "path": "Manifest_NonUFSFiles_Win64.txt",
-      "size": 4273,
-      "sha256": "e5368a215db2482b4fdf2323fedaa67c21f2b8e3b6ca6eef99d7ddb4bb02eca7"
-    },
-    {
-      "path": "Manifest_UFSFiles_Win64.txt",
-      "size": 209178,
-      "sha256": "7baf3b11e854690782f229739b5714248efa1f54d81cbe1537254f84a9cfa61d"
-    },
-    {
-      "path": "NOTICES.txt",
-      "size": 111,
-      "sha256": "ba49ae5586f817b36a2772269f71f899cb1f54b5f2720fad951319edd5e140b8"
-    },
-    {
-      "path": "UBF.exe",
-      "size": 231936,
-      "sha256": "ff0b206e281ba8ccdf0767e26ec718e148f1ef5c1797ebd69796d804e3364685"
-    },
     {
       "path": "Engine/Binaries/ThirdParty/DbgHelp/dbghelp.dll",
       "size": 2232688,
@@ -83,16 +58,6 @@
       "sha256": "fef3980fa567e9c45d5d8dcaa432a2c1a3f3bb17fe67d7ab198164f56c142aa1"
     },
     {
-      "path": "Engine/Content/SlateDebug/Fonts/LastResort.tps",
-      "size": 930,
-      "sha256": "0f775fa99d05e21d43d2d06d55982b23dcdccdb512a9a5a07aff674f212c41b8"
-    },
-    {
-      "path": "Engine/Content/SlateDebug/Fonts/LastResort.ttf",
-      "size": 5395052,
-      "sha256": "fff0f8de0b868b964950fe97c9b60f893e9bc85a4f90b3629c5693db058b97b9"
-    },
-    {
       "path": "Engine/Extras/Redist/en-us/vc_redist.arm64.exe",
       "size": 11751688,
       "sha256": "9a4540c1ed0ac2a0755c0093a9c01e4b3dbe21b25805318ba495648fc890e14f"
@@ -108,19 +73,24 @@
       "sha256": "5df3d744b5cc4421181e9e2c97cadff4e9b1b2b25e80202160e80fc94ff948f2"
     },
     {
-      "path": "UBF/Binaries/Win64/tbb12.dll",
-      "size": 342456,
-      "sha256": "de15a5f93bfd334d4fe32343a81d76f9de0824af8e31b2189637d12545af2673"
+      "path": "Manifest_NonUFSFiles_Win64.txt",
+      "size": 5695,
+      "sha256": "68d33702bebd2ace2fd802a5f5b8336ac29a09b3b664a6badef4bd71bdf5827c"
     },
     {
-      "path": "UBF/Binaries/Win64/tbbmalloc.dll",
-      "size": 117176,
-      "sha256": "74edc04a8f5bc2593a5a555b675c1251d6d90e693ee6a67cfa11dd3b2d17a856"
+      "path": "Manifest_UFSFiles_Win64.txt",
+      "size": 210441,
+      "sha256": "93dcbf62a4e25b3c026dce3657710762d60cf3c4202160ca69ed5bbe2e541cb5"
     },
     {
-      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
-      "size": 166311424,
-      "sha256": "5ba704826b904e890bdeb8c945cf9e0ba8f87798e0ed39eb04090015283969bc"
+      "path": "NOTICES.txt",
+      "size": 111,
+      "sha256": "ba49ae5586f817b36a2772269f71f899cb1f54b5f2720fad951319edd5e140b8"
+    },
+    {
+      "path": "UBF.exe",
+      "size": 231936,
+      "sha256": "ff0b206e281ba8ccdf0767e26ec718e148f1ef5c1797ebd69796d804e3364685"
     },
     {
       "path": "UBF/Binaries/Win64/D3D12/x64/D3D12Core.dll",
@@ -138,34 +108,49 @@
       "sha256": "f97b69379ecbdbab7e1dcd2b6170e7f285d367c86ee6718bc401c4d7cef1275c"
     },
     {
+      "path": "UBF/Binaries/Win64/tbb12.dll",
+      "size": 342456,
+      "sha256": "de15a5f93bfd334d4fe32343a81d76f9de0824af8e31b2189637d12545af2673"
+    },
+    {
+      "path": "UBF/Binaries/Win64/tbbmalloc.dll",
+      "size": 117176,
+      "sha256": "74edc04a8f5bc2593a5a555b675c1251d6d90e693ee6a67cfa11dd3b2d17a856"
+    },
+    {
+      "path": "UBF/Binaries/Win64/UBF-Win64-Shipping.exe",
+      "size": 166310912,
+      "sha256": "45e8a8455af1167f6fc9c4d438477e266be5fc74ecea18b7e3684a2a01e13be4"
+    },
+    {
       "path": "UBF/Content/Paks/global.ucas",
-      "size": 3218128,
-      "sha256": "a3ff3a7f50ec7829adb91821e4121b4955c4bfebe163a028230e91cc637e6be3"
+      "size": 3218192,
+      "sha256": "e1923413901747684a72caf118f38c5d3d872ab274787bd879979b269332cf00"
     },
     {
       "path": "UBF/Content/Paks/global.utoc",
       "size": 794,
-      "sha256": "3a2148ef3a50121d432e9706d49a1d8d4b82f6554efdae2378ad04a55636b685"
+      "sha256": "1f616cae8add79ca545570ace8785f17d9559828b08ee88694e5460ca26f6831"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.pak",
-      "size": 10650021,
-      "sha256": "269e9eb122b4d822ecb2c0799c2cb722d15f9c96fe1dc9a3fa438b30bd484e7d"
+      "size": 10652069,
+      "sha256": "c2c05cd1f3ddaed4f8bc100ec38082792445e4fdce27446ce09b50027c3b009c"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.ucas",
-      "size": 128841440,
-      "sha256": "e8dadc71156cc7b0795de84edbd1f8665d8c2e100580254c83df2aaa672c2e39"
+      "size": 151910336,
+      "sha256": "d09dd51ecc792c488069f3d4570afe0e518e5b393ac19bd5ae58e7bde5d9b129"
     },
     {
       "path": "UBF/Content/Paks/UBF-Windows.utoc",
-      "size": 134325,
-      "sha256": "74febebbbba75927a79a059e6c67af27e0f6e1f7b2e3902c8e62eaef3d5f9216"
+      "size": 140263,
+      "sha256": "9abd998496c4951caf4bbdc7c554a01e75c17bb80fb1c135aceee624092ced3d"
     },
     {
       "path": "UBF/Content/Presentation/Audio/introdution_ubf_normalized.uasset",
-      "size": 452277,
-      "sha256": "8e82c35700a894ded031201fac661959c7bf4cb99dfe6b270d6b72bc375080ce"
+      "size": 456218,
+      "sha256": "7f352bfad8ab54b57e9128422eb9ba8281c356f4ce7935289fee44956d158fc4"
     },
     {
       "path": "UBF/Content/Presentation/Audio/introdution_ubf_normalized.wav",
@@ -179,8 +164,8 @@
     },
     {
       "path": "UBF/Content/Presentation/Audio/introdution_ubf.uasset",
-      "size": 456062,
-      "sha256": "63eccc1f4d6e98d5035d82458f40acee618ecc7f1555f83c59ace3cca1980566"
+      "size": 456141,
+      "sha256": "c8b3603cefe28224ad9d742bd1638a510da9662b4a129bd975fdd9d0fbb9a91a"
     },
     {
       "path": "UBF/Content/Presentation/Audio/introdution_ubf.wav",
@@ -228,9 +213,19 @@
       "sha256": "18b1040e39012a8144b269268a0a9a341fba6a3554a61e5b0093deef908f13e1"
     },
     {
+      "path": "UBF/Content/Presentation/Audio/UBF_MAP_LOADING.uasset",
+      "size": 12593876,
+      "sha256": "065930c4930601811adc7861ad019a54c58f7a5ff2397bc4b5020e50a44b5670"
+    },
+    {
       "path": "UBF/Content/Presentation/Audio/UBF_MAP_LOADING.wma",
       "size": 3735092,
       "sha256": "dbe36721ff70d09a5204ad57694a74f562139bafdb69308c8d3787aa805f2121"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_01.uasset",
+      "size": 15563701,
+      "sha256": "409e7965f049805cb7e8b5c46eaa7ccd9e39a84bf959fafefaa5c93a2513133f"
     },
     {
       "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_01.wma",
@@ -238,9 +233,19 @@
       "sha256": "fe74b8189f5346e7da92dfdc9eef6f3680f454f9ebb80dc742df579f8bea582d"
     },
     {
+      "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_02.uasset",
+      "size": 35470341,
+      "sha256": "6bb9bdfbe6b1614b6af7dd845d79147151333c7220fa3fea514db158dfd49661"
+    },
+    {
       "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_02.wma",
       "size": 8087092,
       "sha256": "1bf9c5003a414db299ab6b986e57d767fffb7cd9f4d8303388e48af02ac075fc"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_03.uasset",
+      "size": 14587490,
+      "sha256": "288ffa65ff036d634433964475e88f1aae550658dedc4c097bbc4b4c578b91d6"
     },
     {
       "path": "UBF/Content/Presentation/Audio/UBF_MUSICBATTLE_03.wma",
@@ -248,9 +253,19 @@
       "sha256": "b3fb739bdeb74a364e8139c6c30f7a2b13cd1729a6acb818363e5c59a23ce94c"
     },
     {
+      "path": "UBF/Content/Presentation/Audio/UBF_ROUND_LOST_TEAM.uasset",
+      "size": 3415686,
+      "sha256": "9feb9098541379840ffed88f4009c97d19c6a78a3d139719f5cb9588e8b00d50"
+    },
+    {
       "path": "UBF/Content/Presentation/Audio/UBF_ROUND_LOST_TEAM.wma",
       "size": 1043892,
       "sha256": "ad57735a63630e3847aafc103a0c5264489ee63b889f51c898aa3a1c4383edb1"
+    },
+    {
+      "path": "UBF/Content/Presentation/Audio/UBF_ROUND_WIN_TEAM.uasset",
+      "size": 6805201,
+      "sha256": "5add7855d3e85dfd285374541f8b5ee8e949416d25b5a3fbed6e997f0d6c64fa"
     },
     {
       "path": "UBF/Content/Presentation/Audio/UBF_ROUND_WIN_TEAM.wma",
@@ -273,9 +288,19 @@
       "sha256": "52f49c4438e8999effe813906398a6c91db2818f2e4218d22379a46cb849597c"
     },
     {
+      "path": "UBF/Content/Presentation/UIArt/icon-accessory.uasset",
+      "size": 16094,
+      "sha256": "eba3a859100c9c29fa9df2cc58abdd5e5427658bf51009d7290a2c5eb2162183"
+    },
+    {
       "path": "UBF/Content/Presentation/UIArt/icon-armor.png",
       "size": 2166,
       "sha256": "3bebf8bd79b3133b74437feb66457edd56884ebfe477031b848724e7674d297e"
+    },
+    {
+      "path": "UBF/Content/Presentation/UIArt/icon-armor.uasset",
+      "size": 15700,
+      "sha256": "f5dae8c29e400c4a60b8d8b3f754069448fcb9b5904a6ee73dc91affcb082642"
     },
     {
       "path": "UBF/Content/Presentation/UIArt/icon-character.png",
@@ -283,9 +308,19 @@
       "sha256": "c193882ae8f46df84e0302fce2e73e4c09b055de15537f877452129a7c698992"
     },
     {
+      "path": "UBF/Content/Presentation/UIArt/icon-character.uasset",
+      "size": 14920,
+      "sha256": "8133f19b46e8e379ce3222ff055f8412bdab3043bf9530c196fa0adcc847c575"
+    },
+    {
       "path": "UBF/Content/Presentation/UIArt/icon-shop.png",
       "size": 1288,
       "sha256": "393c3cd6f1ef866b40f912272e5dd15c2443f444286985a6d72404a19d6c454d"
+    },
+    {
+      "path": "UBF/Content/Presentation/UIArt/icon-shop.uasset",
+      "size": 14246,
+      "sha256": "8b0823bb5f7bacaa013889c52a1f7e0ff4687514949126aed49bad26ecb1260d"
     },
     {
       "path": "UBF/Content/Presentation/UIArt/icon-weapon.png",
@@ -293,9 +328,19 @@
       "sha256": "4ae535375954e03c6f9546bf7361bbfae9a661d3a002d909795e38c06605d7c2"
     },
     {
+      "path": "UBF/Content/Presentation/UIArt/icon-weapon.uasset",
+      "size": 13675,
+      "sha256": "f0c71fa0443d8ac10c30a25f9dbbc2b59df81acb9ee0fb7ddafb506f247c3ef2"
+    },
+    {
       "path": "UBF/Content/Presentation/UIArt/panel-frame-blue.png",
       "size": 1695,
       "sha256": "b41e907e75f4dd2be2b020e78a6f6f8c7f00a13982a75f54ed71c5a9d0ead93b"
+    },
+    {
+      "path": "UBF/Content/Presentation/UIArt/panel-frame-blue.uasset",
+      "size": 16823,
+      "sha256": "a036609d5b9ff3e7ebad861d161fa25f8216e1c111549becfca41f246711a569"
     },
     {
       "path": "UBF/Content/Presentation/UIArt/panel-frame-gold.png",
@@ -303,9 +348,19 @@
       "sha256": "fe698b1b79a52ef29c0b4fb1f7bd90d5fc3cd18b116c8b6b6040f441bae1645b"
     },
     {
+      "path": "UBF/Content/Presentation/UIArt/panel-frame-gold.uasset",
+      "size": 16497,
+      "sha256": "ed3ca58f4f72479f84c9ab86e20b9cfeecc82d7757a8283e05aceff2dbfcd211"
+    },
+    {
       "path": "UBF/Content/Presentation/UIArt/panel-frame-red.png",
       "size": 1697,
       "sha256": "c2c4fbebbb5a349cae9fa63dae52d289252fc1eb42cf596e5a360fc90b9a44e4"
+    },
+    {
+      "path": "UBF/Content/Presentation/UIArt/panel-frame-red.uasset",
+      "size": 15617,
+      "sha256": "3291afd2aba6642d335ed8f679abbd11cc5e31125192c3b6e83368b34c675ea1"
     },
     {
       "path": "UBF/Content/Presentation/UIArt/skill-e.png",
@@ -313,9 +368,19 @@
       "sha256": "e9d6bb6a18f589795352f3337d9a6dea86b05303864e6d88b42c9d0937316f57"
     },
     {
+      "path": "UBF/Content/Presentation/UIArt/skill-e.uasset",
+      "size": 16213,
+      "sha256": "284c477ef33c9143cb8ab7ebf4be7e65f69439e51ce017f42651e006e03454ac"
+    },
+    {
       "path": "UBF/Content/Presentation/UIArt/skill-passive.png",
       "size": 2398,
       "sha256": "e48a68e8b2b906bfdcb2ae3e3e1716df9517ab19ca1bbd7d50a8c6395c4ad39c"
+    },
+    {
+      "path": "UBF/Content/Presentation/UIArt/skill-passive.uasset",
+      "size": 15687,
+      "sha256": "edecd2096f152fa7d6d15837e83cc61183bdde59409adf4012ecec13b5b4dc67"
     },
     {
       "path": "UBF/Content/Presentation/UIArt/skill-q.png",
@@ -323,9 +388,19 @@
       "sha256": "5121236316b46a2cbdb52e49f1a67e65733ac11591503c0f7cd31117a74be99c"
     },
     {
+      "path": "UBF/Content/Presentation/UIArt/skill-q.uasset",
+      "size": 13343,
+      "sha256": "553ec00bbc6c1eb9ad840e26d048b470999524b35ce1ddc34054cd67b0a454f6"
+    },
+    {
       "path": "UBF/Content/Presentation/UIArt/skill-ultimate.png",
       "size": 2963,
       "sha256": "b9048eb39161dd367fd3254c57d274faef4dd45ca3c5823db8240eaf720fdfcc"
+    },
+    {
+      "path": "UBF/Content/Presentation/UIArt/skill-ultimate.uasset",
+      "size": 17145,
+      "sha256": "39a1d95163ca4d80a8b4a847f21966a69559560f07a27c5a76040bbe074cddc3"
     },
     {
       "path": "UBF/Content/Presentation/Videos/intro.mp4",
