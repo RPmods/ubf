@@ -19,8 +19,10 @@ Este inventario separa código implementado, comprobaciones realizadas y trabajo
 
 - `UBF Win64 Development` y `UBF Win64 Shipping` compilaron correctamente después de integrar esquiva de bots; el ejecutable Shipping actual es `Binaries/Win64/UBF-Win64-Shipping.exe`.
 - La compilación terminó sin errores. Quedaron avisos de API deprecada de `APawn::GetMovementBase` en el encabezado de Unreal Engine 5.8 y un aviso de que la toolchain de Visual Studio instalada es posterior a la recomendada.
-- No se verificó la ejecución visual ni una partida. El editor abierto no se pudo controlar desde esta sesión y el endpoint local de Unreal MCP (`127.0.0.1:8001`) no respondió.
-- `UBFEditor` y `BuildCookRun` siguen pendientes: el editor mantiene Live Coding activo. No se cerró ni se intentó eludir ese bloqueo.
+- El MCP de Unreal ya responde. La sesión original de Unreal Editor quedó abierta, pero su `UnrealEditor-UBF.dll` es anterior al código fuente actual y Live Coding no aplicó la compilación solicitada; no se usó esa sesión para certificar la revisión actual.
+- `UBFEditor` compiló correctamente en `D:\proyectos\UBF-working`, un clon separado, sin cerrar el editor original. También se lanzó `Binaries/Win64/UBF.exe` Development desde ese clon y se verificó el registro de la secuencia actual: `intro.mp4` confirmó reproducción; `musicintro` comenzó al segundo 2.000 desde offset 0 a 60 %; WmfMedia notificó 13.200 s y se conservó el corte configurado de 13.240 s; `videobackground.mp4` y `introdution_ubf.mp3` comenzaron con offset 0.208 s; apareció la fase interactiva y, al terminar `musicintro`, empezó `musicintrobucle` a 60 %. La verificación fue por registro de ejecución; todavía no se comprobó una partida mediante interacción manual.
+- El primer cocinado detectó una entrada obsoleta `GameFeatureData` en `DefaultGame.ini`; UBF no usa ni habilita ese plugin. Se retiró la entrada tanto del clon como del proyecto abierto. El siguiente `BuildCookRun` terminó correctamente con cook, stage, IoStore y archive.
+- Candidata local `publish/UBF-v1.0.6-beta.zip`: 551,142,608 bytes, SHA-256 `6b31c8615c568b1eab9db76f57330b1f58ba864321c09c5d8453421fb3be90b7`. El ZIP contiene 70 entradas; los 38 archivos que comprueba el manifiesto se encontraron y sus hashes se calcularon desde el archivo. `publish/manifest-v1.0.6-beta.json` es solo candidato. El manifiesto oficial todavía apunta a `1.0.5-beta` y no se creó ni publicó una nueva Release.
 
 ## Pendiente antes de considerar completa la expansión
 
@@ -34,8 +36,8 @@ Este inventario separa código implementado, comprobaciones realizadas y trabajo
 | Salas | Las salas son locales y usan bots. No hay sesiones online/lobby de jugadores remotos ni pruebas de red de 2–6 clientes. |
 | Controles | El remapeo persistente funciona para Q/E/F en el prototipo; falta comprobarlo dentro de PIE, con cambio de mapa y reinicio. |
 | Cierre | Faltan pruebas de salida, muerte, reinicio, cambio de mapa y timers/delegates/actores temporales para todas las rutas, en especial Golem Mode. |
-| Distribución | El candidato del Launcher v1.0.18 está en `main` del repo remoto y el ZIP nuevo existe localmente, pero no se publicó una Release. El código del juego y los UAssets están en `main` como commit `52cfd30`; `manifest.json` sigue apuntando al juego ya publicado v1.0.5-beta. Setup permanece en su repositorio separado. |
-| Release | La compilación Shipping no es un paquete cocinado. Faltan compilar el target editor, cocinar/archivar Windows, probar el menú/partida y el flujo Launcher → juego, generar un ZIP y manifest nuevos y después crear la Release del juego. La Release del Launcher también espera una validación interactiva visible. |
+| Distribución | El ZIP candidato `1.0.6-beta` se cocinó y verificó localmente, pero aún no pasó una partida completa ni el flujo Launcher → juego. El `manifest.json` oficial conserva `1.0.5-beta`; las versiones públicas del Launcher y Setup siguen independientes. |
+| Release | Falta verificar visualmente la sesión actual del editor, interactuar con la selección de modo y probar partida, bots y Golem. Después se debe actualizar el manifiesto oficial y publicar el ZIP candidato solo si esas comprobaciones pasan. La Release del Launcher 1.0.18 también espera validación interactiva y publicación del paquete nuevo. |
 
 ## Referencias de diseño documentadas
 
@@ -55,7 +57,7 @@ Las fichas individuales registran estas fuentes y separan explícitamente hechos
 
 ## Siguiente secuencia de validación
 
-1. Reiniciar Unreal Editor y probar Arena 1v1/2v2/3v3, llenar con bots, remapeo Q/E/F, personajes repetidos y cambio de mapa.
+1. Recargar el módulo actual en Unreal Editor y probar Arena 1v1/2v2/3v3, llenar con bots, remapeo Q/E/F, personajes repetidos y cambio de mapa.
 2. Probar Golem Mode: pickup, eliminación del portador, respawn del orbe, puntos, muerte de cada Master y salida/reinicio.
 3. Empaquetar una build Shipping y probarla desde el launcher instalado; validar nombre de usuario, versión, manifest y SHA-256.
 4. Cuando Live Coding esté desactivado tras reiniciar Unreal Editor, compilar `UBFEditor`, probar PIE y ejecutar el cook/archivo Shipping en el clon oficial.
